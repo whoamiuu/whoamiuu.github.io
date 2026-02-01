@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="onlyfgets一、程序分析   程序只有NX保护，且有简单栈溢出。但是，查看程序没有system等可以直接获得shell的gadget 有signal和alarm，根据提示gadget： 120x00000000004010ae : add bl, dh ; endbr64 ; ret0x000000000040114c : add dword ptr [rbp - 0x3d], ebx ;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CTF题解：onlyfgets">
+<meta property="og:url" content="http://whoamiuu.github.io/2025/12/08/2025-12-08-onlyfgets/index.html">
+<meta property="og:site_name" content="Learn Blogs">
+<meta property="og:description" content="onlyfgets一、程序分析   程序只有NX保护，且有简单栈溢出。但是，查看程序没有system等可以直接获得shell的gadget 有signal和alarm，根据提示gadget： 120x00000000004010ae : add bl, dh ; endbr64 ; ret0x000000000040114c : add dword ptr [rbp - 0x3d], ebx ;">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://whoamiuu.github.io/images/onlyfgets/checksec.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/onlyfgets/main.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/onlyfgets/222.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/onlyfgets/step1.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/onlyfgets/step11.png">
+<meta property="article:published_time" content="2025-12-08T14:04:00.000Z">
+<meta property="article:modified_time" content="2025-12-14T11:52:23.969Z">
+<meta property="article:tag" content="ctf">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="stack-overflow">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://whoamiuu.github.io/images/onlyfgets/checksec.png">
+
+
+<link rel="canonical" href="http://whoamiuu.github.io/2025/12/08/2025-12-08-onlyfgets/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2025/12/08/2025-12-08-onlyfgets/","path":"2025/12/08/2025-12-08-onlyfgets/","title":"CTF题解：onlyfgets"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>CTF题解：onlyfgets | Learn Blogs</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Learn Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">二进制安全学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#onlyfgets"><span class="nav-number">1.</span> <span class="nav-text">onlyfgets</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90"><span class="nav-number">1.1.</span> <span class="nav-text">一、程序分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%B0%83%E8%AF%95%E8%BF%87%E7%A8%8B"><span class="nav-number">1.2.</span> <span class="nav-text">二、调试过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%EF%BC%88%E4%B8%80%EF%BC%89-%E5%8E%9F%E8%AF%AD%E5%88%A9%E7%94%A8"><span class="nav-number">1.2.1.</span> <span class="nav-text">（一） 原语利用</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#step1"><span class="nav-number">1.2.1.1.</span> <span class="nav-text">step1</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#step2"><span class="nav-number">1.2.1.2.</span> <span class="nav-text">step2</span></a></li></ol></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span>
+      </div>
+      <div class="site-state-item site-state-tags">
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/08/2025-12-08-onlyfgets/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Learn Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="CTF题解：onlyfgets | Learn Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CTF题解：onlyfgets
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-12-08 22:04:00" itemprop="dateCreated datePublished" datetime="2025-12-08T22:04:00+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-14 19:52:23" itemprop="dateModified" datetime="2025-12-14T19:52:23+08:00">2025-12-14</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="onlyfgets"><a href="#onlyfgets" class="headerlink" title="onlyfgets"></a>onlyfgets</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/onlyfgets/checksec.png" alt="image-20251207102811670"></p>
+<p><img src="/images/onlyfgets/main.png" alt="image-20251207102832960"></p>
+<p><img src="/images/onlyfgets/222.png" alt="image-20251207102938104"></p>
+<p>程序只有NX保护，且有简单栈溢出。但是，查看程序没有system等可以直接获得shell的gadget</p>
+<p>有signal和alarm，根据提示gadget：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0x00000000004010ae : add bl, dh ; endbr64 ; ret</span><br><span class="line">0x000000000040114c : add dword ptr [rbp - 0x3d], ebx ; nop ; ret</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注：</p>
+<p><code>endbr64</code>（End Branch 64-bit）是 <strong>Intel CET</strong>（Control-flow Enforcement Technology）技术的一部分，用于防止ROP攻击。</p>
+<p>作用：endbr64  ; 标记这是一个合法的间接跳转目标</p>
+<p>工作原理：</p>
+<ol>
+<li>运行时检查：当程序通过间接跳转（如 <code>call rax</code>, <code>jmp [rbx]</code>）执行时</li>
+<li>如果目标地址不是 <code>endbr64</code> 指令 → 触发异常</li>
+<li>如果是 <code>endbr64</code> 指令→ 正常执行</li>
+</ol>
+</blockquote>
+<p>分析一下两个原语</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># add bl, dh ; ret</span></span><br><span class="line"><span class="comment">#能力：</span></span><br><span class="line"><span class="number">1.</span> 修改 RBX 的最低字节：BL = BL + DH</span><br><span class="line"><span class="number">2.</span> 不影响其他寄存器（除了 RBX）</span><br><span class="line"><span class="number">3.</span> 返回控制流</span><br><span class="line"></span><br><span class="line"><span class="comment"># 限制：</span></span><br><span class="line"><span class="number">1.</span> 只能加，不能减（除非溢出）</span><br><span class="line"><span class="number">2.</span> 只能修改最低字节</span><br><span class="line"><span class="number">3.</span> DH 的值是运行时决定的</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># add dword ptr [rbp - 0x3d], ebx ; nop ; ret</span></span><br><span class="line"><span class="comment">#能力：</span></span><br><span class="line"><span class="number">1.</span> 内存加法：*(rbp-<span class="number">0x3d</span>) += ebx</span><br><span class="line"><span class="number">2.</span> 操作<span class="number">32</span>位数据（dword）</span><br><span class="line"><span class="number">3.</span> 返回控制流</span><br><span class="line"></span><br><span class="line"><span class="comment">#限制：</span></span><br><span class="line"><span class="number">1.</span> 只能加，不能减</span><br><span class="line"><span class="number">2.</span> 只能操作 [rbp-<span class="number">0x3d</span>] 这个固定偏移</span><br><span class="line"><span class="number">3.</span> 操作<span class="number">4</span>字节，可能影响指针的高位</span><br></pre></td></tr></table></figure>
+
+<p><strong>假设我们可以控制 rbp 和 ebx，就可以向任意地址 (rbp - 0x3d) 加任意值 (ebx)</strong></p>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><h3 id="（一）-原语利用"><a href="#（一）-原语利用" class="headerlink" title="（一） 原语利用"></a>（一） 原语利用</h3><h4 id="step1"><a href="#step1" class="headerlink" title="step1"></a>step1</h4><p>根据上述分析，我们尝试控制 rbp 和 ebx，查一下 pop 指令：</p>
+<p><img src="/images/onlyfgets/step1.png" alt="image-20251208144151439"></p>
+<p>可以看到，我们有了gadget</p>
+<ul>
+<li>0x000000000040114d : pop rbp ; ret</li>
+<li>0x00000000004011fc : pop rdi ; ret</li>
+</ul>
+<p>但是无法直接控制 ebx。思考，ebx 可以通过 bl + dh 修改，通过调试命令查看一下dh</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\xae\x10\x40\x00\x00\x00\x00\x00&quot;</span> | gdb ./onlyfgets -ex <span class="string">&quot;b *0x4010ae&quot;</span> -ex <span class="string">&quot;r&quot;</span> -ex <span class="string">&quot;print (\$rdx &gt;&gt; 8) &amp; 0xFF&quot;</span> -ex <span class="string">&quot;c&quot;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注：</p>
+<ol>
+<li><p>输入</p>
+<ul>
+<li><p><code>-e</code>：启用转义字符解释</p>
+</li>
+<li><p><code>AAAAAAAA...</code>：40个 ‘A’（32缓存，8 rbp）</p>
+</li>
+<li><p><code>\xae\x10\x40\x00\x00\x00\x00\x00</code>：小端序的 0x4010ae（<code>add bl, dh</code> gadget）</p>
+</li>
+</ul>
+</li>
+<li><p>断点：</p>
+<ul>
+<li><p><code>-ex</code>：执行gdb命令</p>
+</li>
+<li><p><code>b *地址</code>：在指定地址设置断点</p>
+</li>
+<li><p><code>0x4010ae</code>：<code>add bl, dh</code> gadget 的地址</p>
+</li>
+</ul>
+</li>
+<li><p>计算</p>
+<ul>
+<li><p><code>-ex &quot;r&quot; </code> ：运行程序</p>
+</li>
+<li><p><code>\$rdx</code>：RDX 寄存器（需要转义 <code>$</code>）</p>
+</li>
+<li><p><code>&gt;&gt; 8</code>：右移8位（获取高8位）</p>
+</li>
+<li><p><code>&amp; 0xFF</code>：取低8位</p>
+</li>
+</ul>
+</li>
+</ol>
+</blockquote>
+<p>运行结果：</p>
+<p><img src="/images/onlyfgets/step11.png" alt="image-20251208150004782"></p>
+<p>可以看到计算出 $1 (即dh) &#x3D; 32 (0x20)。或者直接看下面RDX显示的0xfbad208b</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">0x00000000fbad208b</span><br><span class="line">          ↑↑</span><br><span class="line">高位字节   低位字节</span><br><span class="line"></span><br><span class="line">RDX（64位）：0x00000000fbad208b</span><br><span class="line">EDX（32位）：0xfbad208b  </span><br><span class="line">DX（16位）：0x208b</span><br><span class="line">DH（高8位）：0x20</span><br><span class="line">DL（低8位）：0x8b</span><br></pre></td></tr></table></figure>
+
+
+
+<blockquote>
+<p>(注：</p>
+<p><strong>这是 <code>_IO_FILE</code> 结构的标志位。<code>0xfbad</code> 是 glibc 的魔法数字，标识这是一个 <code>_IO_FILE</code> 结构；而标志位 <code>0x208b</code>，</strong></p>
+<ul>
+<li><p>0x2000 &#x3D; _IO_USER_BUF    (0x2000) - 用户提供的缓冲区</p>
+</li>
+<li><p>0x0080 &#x3D; _IO_CURRENTLY_PUTTING (0x0080) - 当前正在写入</p>
+</li>
+<li><p>0x0008 &#x3D; _IO_NO_READS    (0x0008) - 不允许读取</p>
+</li>
+<li><p>0x0002 &#x3D; _IO_LINE_BUF    (0x0002) - 行缓冲</p>
+</li>
+<li><p>0x0001 &#x3D; _IO_UNBUFFERED  (0x0001) - 无缓冲)</p>
+</li>
+</ul>
+<p><strong>所以，DH 值是固定的：来自 stdin 的 flags 字段，每次都是 0x20，无法改变，除非能修改内存中的 stdin 结构本身</strong></p>
+</blockquote>
+<h4 id="step2"><a href="#step2" class="headerlink" title="step2"></a>step2</h4><p>现在我们确认了，每次 add bl, dh 会给 bl 加 0x20，所以需要加上0x20的倍数，加法后的地址必须是<strong>另一个有用函数</strong>的地址</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/stack-overflow/" rel="tag"># stack-overflow</a>
+              <a href="/tags/ctf/" rel="tag"># ctf</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/12/07/2025-12-07-%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/" rel="prev" title="CTF题解：许哥的游戏">
+                  <i class="fa fa-angle-left"></i> CTF题解：许哥的游戏
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2025/12/09/2025-12-09-week1-Shellcode/" rel="next" title="CTF题解：shellcode">
+                  CTF题解：shellcode <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder"></span>
+  </div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
