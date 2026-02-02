@@ -245,7 +245,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-02-02 15:27:56" itemprop="dateModified" datetime="2026-02-02T15:27:56+08:00">2026-02-02</time>
+      <time title="Modified: 2026-02-02 15:41:59" itemprop="dateModified" datetime="2026-02-02T15:41:59+08:00">2026-02-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -268,9 +268,9 @@
     
     <div class="post-body" itemprop="articleBody">
           <h1 id="ezphp"><a href="#ezphp" class="headerlink" title="ezphp"></a>ezphp</h1><p>打开题目界面，需要输入用户名和密码，我们F12查看，可以发现用户名和密码是硬编码的，直接输入即可登录</p>
-<p>![image-20260202140316527](&#x2F;images&#x2F;VNCTF 2026&#x2F;02-01-ezphp&#x2F;passwd.png)</p>
+<p><img src="/images/VNCTF2026/02-01-ezphp/passwd.png" alt="image-20260202140316527"></p>
 <p>登录后，发现需要想办法获取到拓展文件的路径然后下载它，尝试在文件下载接口输入 <code>/proc/self/maps</code>（<em>输出当前进程的内存映射信息，在ret2vdso调试部分详细解释</em>），就可以下载一个文件，打开后即可找到vuln.so路径</p>
-<p>![image-20260202141950226](&#x2F;images&#x2F;VNCTF 2026&#x2F;02-01-ezphp&#x2F;pass.png)</p>
+<p><img src="/images/VNCTF2026/02-01-ezphp/pass.png" alt="image-20260202141950226"></p>
 <p>接下来直接访问<a target="_blank" rel="noopener" href="http://114.66.24.228:33951/download.php?path=/usr/local/lib/php/extensions/no-debug-non-zts-20240924/vuln.so%E5%B0%B1%E5%8F%AF%E4%BB%A5%E4%B8%8B%E8%BD%BD">http://114.66.24.228:33951/download.php?path=/usr/local/lib/php/extensions/no-debug-non-zts-20240924/vuln.so就可以下载</a> vuln.so</p>
 <p>接下来不会了，看不懂了</p>
 
@@ -335,7 +335,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-02-02 15:26:20" itemprop="dateModified" datetime="2026-02-02T15:26:20+08:00">2026-02-02</time>
+      <time title="Modified: 2026-02-02 15:43:06" itemprop="dateModified" datetime="2026-02-02T15:43:06+08:00">2026-02-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -371,11 +371,11 @@
 
 
 <h2 id="二、AI策略"><a href="#二、AI策略" class="headerlink" title="二、AI策略"></a>二、AI策略</h2><p>来让 AI 得到真实的文件，可以看到输出了几个文件，其中<code>game</code>就是我们需要分析的二进制文件</p>
-<p>![image-20260131202526072](&#x2F;images&#x2F;VNCTF 2026&#x2F;1-31-eat some AI&#x2F;ls.png)</p>
+<p>![image-20260131202526072](&#x2F;images&#x2F;VNCTF2026&#x2F;1-31-eat some AI&#x2F;ls.png)</p>
 <p>当前目录下没有flag文件，那我们就在当前目录和根目录查找flag</p>
 <p>![image-20260131230709503](&#x2F;images&#x2F;VNCTF 2026&#x2F;1-31-eat some AI&#x2F;flag.png)</p>
 <p>查到了flag路径，cat &#x2F;flag即可</p>
-<p>![image-20260131231238415](&#x2F;images&#x2F;VNCTF 2026&#x2F;1-31-eat some AI&#x2F;flag2.png)</p>
+<p>![image-20260131231238415](&#x2F;images&#x2F;VNCTF2026&#x2F;1-31-eat some AI&#x2F;flag2.png)</p>
 
       
     </div>

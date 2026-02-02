@@ -29,7 +29,7 @@
 <meta property="og:description" content="eat some AI一、题目分析根据提示，我们要进行Fuzzing，还要分析 game 二进制文件，找到获取 shell 或读取 flag 的利用路径。 nc到游戏界面，可以发现有两类输入，一种是输入“战斗”，另一种是输入数字购买道具；胜利获得积分，失败和逃跑无积分。 尝试提示“是否开始战斗？”时输入大量数字，发现这样会触发“你选择了逃跑…”，导致退出，所以猜测在提示“你要购买几个？”的地方存在">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-01-31T12:56:00.000Z">
-<meta property="article:modified_time" content="2026-02-02T07:26:20.741Z">
+<meta property="article:modified_time" content="2026-02-02T07:43:06.449Z">
 <meta property="article:tag" content="ai">
 <meta property="article:tag" content="ctf">
 <meta property="article:tag" content="fuzzing">
@@ -253,7 +253,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-02-02 15:26:20" itemprop="dateModified" datetime="2026-02-02T15:26:20+08:00">2026-02-02</time>
+      <time title="Modified: 2026-02-02 15:43:06" itemprop="dateModified" datetime="2026-02-02T15:43:06+08:00">2026-02-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -295,11 +295,11 @@
 
 
 <h2 id="二、AI策略"><a href="#二、AI策略" class="headerlink" title="二、AI策略"></a>二、AI策略</h2><p>来让 AI 得到真实的文件，可以看到输出了几个文件，其中<code>game</code>就是我们需要分析的二进制文件</p>
-<p>![image-20260131202526072](&#x2F;images&#x2F;VNCTF 2026&#x2F;1-31-eat some AI&#x2F;ls.png)</p>
+<p>![image-20260131202526072](&#x2F;images&#x2F;VNCTF2026&#x2F;1-31-eat some AI&#x2F;ls.png)</p>
 <p>当前目录下没有flag文件，那我们就在当前目录和根目录查找flag</p>
 <p>![image-20260131230709503](&#x2F;images&#x2F;VNCTF 2026&#x2F;1-31-eat some AI&#x2F;flag.png)</p>
 <p>查到了flag路径，cat &#x2F;flag即可</p>
-<p>![image-20260131231238415](&#x2F;images&#x2F;VNCTF 2026&#x2F;1-31-eat some AI&#x2F;flag2.png)</p>
+<p>![image-20260131231238415](&#x2F;images&#x2F;VNCTF2026&#x2F;1-31-eat some AI&#x2F;flag2.png)</p>
 
     </div>
 
