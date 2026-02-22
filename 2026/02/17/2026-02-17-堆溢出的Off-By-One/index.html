@@ -33,13 +33,13 @@
 <meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/heap2.png">
 <meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/heap3.png">
 <meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/%E8%AF%A6%E8%A7%A32.png">
-<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/mmap.png">
 <meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/1.png">
-<meta property="og:image" content="c:\Users\WH\Desktop\Blog\source\images\26-02-14-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one\mmap2.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/mmap2.png">
 <meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/mmap3.png">
 <meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/%E8%AF%A6%E8%A7%A33.png">
 <meta property="article:published_time" content="2026-02-17T02:00:00.000Z">
-<meta property="article:modified_time" content="2026-02-22T17:59:06.673Z">
+<meta property="article:modified_time" content="2026-02-22T18:08:28.579Z">
 <meta property="article:tag" content="ctf">
 <meta property="article:tag" content="heap-overflow">
 <meta property="article:tag" content="pwn">
@@ -264,7 +264,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-02-23 01:59:06" itemprop="dateModified" datetime="2026-02-23T01:59:06+08:00">2026-02-23</time>
+      <time title="Modified: 2026-02-23 02:08:28" itemprop="dateModified" datetime="2026-02-23T02:08:28+08:00">2026-02-23</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -346,14 +346,14 @@
 <p>我们知道，malloc 分配内存有两种方式，当 malloc 申请非常大的内存（通常大于 128KB）时，不使用传统的堆（brk 扩展），而是调用 <code>mmap()</code> 系统调用单独映射一块内存。</p>
 <p>简单来讲，brk 扩展就是从 Top chunk 分割一个块，其位置还是在堆区域；而 mmap 映射则是由内核决定这块内存的位置。</p>
 <p>下面我们 gdb 调试观察 mmap 分配的内存区域。为了区分结构体堆块和用户申请堆块，我们创建第一本书时将 name_size 和 desc_size 设置成16字节。创建第二本书时将 name_size 和 desc_size 设置成 2000000 字节(触发mmap)。</p>
-<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/.png" alt="image-20260220195401218"></p>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/mmap.png" alt="image-20260220195401218"></p>
 <p>我们创建两本书，malloc 共申请了6次，但这里只有4个堆块。可以看到前三个堆块就是我们的 book1，而 book2 申请的两个超大内存并不在堆区域，只有 book2 结构体存储的块。</p>
 <p>我们来看 book2 结构体，很明显，size 部分 0x00000000001e8480 正是我们申请的 2000000字节内存大小，而 0x00007ffff7a17010 和 0x00007ffff782e010 则是我们申请的name和description内存区域。</p>
 <p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/1.png" alt="image-20260220200044985"></p>
 <p>我们通过 vmmap 可以更清晰的看到 mmap 分配的内存。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mmap 区域: 0x7ffff782e000</span><br><span class="line">libc 基址: 0x7ffff7c00000</span><br><span class="line">差值 = 0x7ffff782e000 - 0x7ffff7c00000 = -0x3d2000</span><br></pre></td></tr></table></figure>
 
-<p><img src="C:\Users\WH\Desktop\Blog\source\images\26-02-14-堆中的off-by-one\mmap2.png" alt="mmap2"></p>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/mmap2.png" alt="mmap2"></p>
 <p>下面验证一下 mmap 分配的内存与 libc 之间的偏移是否固定。</p>
 <blockquote>
 <p>为方便调试，gdb默认关闭ASLR，我们可以通过<code>set disable-randomization off</code>开启ASLR</p>
