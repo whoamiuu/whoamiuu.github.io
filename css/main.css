@@ -1442,7 +1442,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #ff0f08;
+  background: #8fff53;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2876,6 +2876,17 @@ header.header {
     left: 320px;
   }
 }
-body {
-  background: linear-gradient(rgba(30,30,30,0.8), rgba(30,30,30,0.8)), url("/images/banner.jpg") center/cover fixed no-repeat !important;
+/* 浅色模式 */
+@media (prefers-color-scheme: light) {
+  body {
+    background: #f0f0f0 url("/images/banner.jpg") center/cover fixed no-repeat !important;
+    color: #000 !important;
+  }
+}
+/* 深色模式（保留原来的） */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(rgba(30,30,30,0.8), rgba(30,30,30,0.8)), url("/images/banner.jpg") center/cover fixed no-repeat !important;
+    color: #fff !important;
+  }
 }
