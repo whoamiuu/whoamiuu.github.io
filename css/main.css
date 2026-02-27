@@ -1442,7 +1442,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #8fff53;
+  background: #fffad5;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2876,17 +2876,107 @@ header.header {
     left: 320px;
   }
 }
-/* 浅色模式 */
+body {
+  background: url("/images/banner.jpg") center/cover fixed no-repeat;
+  position: relative;
+  color: rgba(255,255,255,0.827) !important;
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(rgba(107,106,106,0.8), rgba(30,30,30,0.8));
+  pointer-events: none; /* 让点击穿透 */
+  z-index: -1;
+}
+/* 博客副标题 */
+.site-subtitle {
+  font-weight: 500 !important;
+}
+/* 导航菜单文字 */
+.menu .menu-item a {
+  font-weight: 500 !important;
+}
+/* 文章标题 */
+/* 文章元信息 */
 @media (prefers-color-scheme: light) {
-  body {
-    background: #f0f0f0 url("/images/banner.jpg") center/cover fixed no-repeat !important;
-    color: #000 !important;
+  .site-subtitle {
+    color: #fff !important;
+  }
+  .menu .menu-item a {
+    color: #f2f0f0 !important;
+  }
+  .post-title,
+  .posts-expand .post-title-link {
+    color: #dedddd !important;
+  }
+  .post-meta {
+    color: #c4c3c3 !important;
   }
 }
-/* 深色模式（保留原来的） */
+/* 基础链接样式 */
+a {
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.post-body a {
+  border-bottom: 1px dashed;
+}
+/* 引用块样式 */
+blockquote {
+  border-left-width: 4px;
+  border-left-style: solid;
+  padding: 10px 20px;
+  margin: 15px 0;
+  border-radius: 0 5px 5px 0;
+}
 @media (prefers-color-scheme: dark) {
-  body {
-    background: linear-gradient(rgba(30,30,30,0.8), rgba(30,30,30,0.8)), url("/images/banner.jpg") center/cover fixed no-repeat !important;
-    color: #fff !important;
+  a {
+    color: #c1ddfd;
+  }
+  a:hover {
+    color: #14bcda;
+    text-decoration: underline;
+  }
+  .post-body a {
+    border-bottom-color: #c1ddfd;
+  }
+  .post-body a:hover {
+    border-bottom-color: #14bcda;
+  }
+  blockquote {
+    border-left-color: #c00;
+    background-color: #444;
+    color: #c9d1d9;
+  }
+  blockquote a {
+    color: #14bcda;
+  }
+}
+@media (prefers-color-scheme: light) {
+  a {
+    color: #c1ddfd;
+  }
+  a:hover {
+    color: #14bcda;
+    text-decoration: underline;
+  }
+  .post-body a {
+    border-bottom-color: #c1ddfd;
+  }
+  .post-body a:hover {
+    border-bottom-color: #14bcda;
+  }
+  blockquote {
+    border-left-color: #c00;
+    background-color: #444;
+    color: #c9d1d9;
+  }
+  blockquote a {
+    color: #14bcda;
   }
 }
