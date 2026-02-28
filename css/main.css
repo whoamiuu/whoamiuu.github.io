@@ -1442,7 +1442,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #3dffd5;
+  background: #41ff8a;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2889,7 +2889,7 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(rgba(107,106,106,0.8), rgba(30,30,30,0.8));
+  background: linear-gradient(rgba(50,50,50,0.8), rgba(30,30,30,0.8));
   pointer-events: none; /* 让点击穿透 */
   z-index: -1;
 }
