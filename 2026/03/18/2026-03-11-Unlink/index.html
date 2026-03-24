@@ -28,17 +28,17 @@
 <meta property="og:site_name" content="Whoamiuu&#39;s Blogs">
 <meta property="og:description" content="Unlink一、例题2014 HITCON stkof 本题没有任何提示词输出，主要的输出只有 “FAIL” 和 “OK”。查看反编译，程序有四个功能：  输入 1 ：调用存在 malloc 的函数，输入 size 存储堆指针，打印索引。 输入 2 ：调用存在 read 的函数，输入索引，输入读取字节数，向对应堆块读入信息。 输入 3 ：调用存在 free 的函数，输入索引，释放堆块。 输入 4">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="c:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20260323103936952.png">
-<meta property="og:image" content="c:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20260323111311638.png">
-<meta property="og:image" content="c:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20260323213506870.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-03-20-unlink/%E7%A4%BA%E6%84%8F%E5%9B%BE.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-03-20-unlink/%E7%A4%BA%E6%84%8F%E5%9B%BE2.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-03-20-unlink/heap.png">
 <meta property="article:published_time" content="2026-03-18T02:00:00.000Z">
-<meta property="article:modified_time" content="2026-03-24T03:05:31.258Z">
+<meta property="article:modified_time" content="2026-03-24T11:21:59.623Z">
 <meta property="article:tag" content="ctf">
 <meta property="article:tag" content="heap-overflow">
 <meta property="article:tag" content="pwn">
 <meta property="article:tag" content="unlink">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="c:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20260323103936952.png">
+<meta name="twitter:image" content="http://whoamiuu.github.io/images/26-03-20-unlink/%E7%A4%BA%E6%84%8F%E5%9B%BE.png">
 
 
 <link rel="canonical" href="http://whoamiuu.github.io/2026/03/18/2026-03-11-Unlink/">
@@ -258,7 +258,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-03-24 11:05:31" itemprop="dateModified" datetime="2026-03-24T11:05:31+08:00">2026-03-24</time>
+      <time title="Modified: 2026-03-24 19:21:59" itemprop="dateModified" datetime="2026-03-24T19:21:59+08:00">2026-03-24</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -314,7 +314,7 @@
 
 <p>简单解释一下这里的含义：在释放一个块时，P 代表这个块物理上相邻的前一个块或后一个块(如果空闲)；FD 和 BK 是临时变量，分别存储 P 的 fd 和 bk 指针。注意这里的关键检查，之后有用。</p>
 <p>一个正常的双向链表如下图：</p>
-<p><img src="C:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20260323103936952.png" alt="image-20260323103936952"></p>
+<p><img src="/images/26-03-20-unlink/%E7%A4%BA%E6%84%8F%E5%9B%BE.png" alt="image-20260323103936952"></p>
 <p>可以看到，双向链表是以在.data段的main_arena结构体为链表头，通过 fd 和 bk 连接起来的环状结构。</p>
 <p>这里的三个蓝色块代表已释放的空闲块，虚线部分代表正在使用的块，其中 IN_USE 块和 chunk1 物理内存上相邻。于是，当释放 IN_USE 块时，检查发现前一个块空闲，需要合并，触发 unlink，此时 chunk1 即为 P。</p>
 <p>unlink 过程中，P-&gt;fd，即P的 fd 指针的值，赋值给FD，因为 fd 指向 chunk2 头部，fd 实际上就是 chunk2 的地址，所以 FD 可以理解为代表 chunk2；同理，BK 可以理解为代表 main_arena。（这里重点要理解 P-&gt;fd 在底层做了什么，因为 fd 在一个堆块偏移0x10的位置，这里要取得 fd 的值，所以 FD &#x3D; P-&gt;fd 实际上执行的是 FD &#x3D; [P_addr + 0x10]。）</p>
@@ -324,7 +324,7 @@
 <li>BK-&gt;fd &#x3D; FD：把 chunk2 的地址写入 main_arena 的 fd 指针</li>
 </ul>
 <p>unlink 操作完成后如下图：</p>
-<p><img src="C:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20260323111311638.png" alt="image-20260323111311638"></p>
+<p><img src="/images/26-03-20-unlink/%E7%A4%BA%E6%84%8F%E5%9B%BE2.png" alt="image-20260323111311638"></p>
 <p>可以看到，unlink 结束，P 块已经从双向链表中剔除，其余三个形成了完整的环状结构。之后的合并块以及添加块不再赘述，此处 unlink 漏洞的核心在于两个写入操作：</p>
 <ul>
 <li>FD-&gt;bk &#x3D; BK</li>
@@ -344,7 +344,7 @@
 <p>可以看到，每次分配的堆块指针被放入以 Base_DAT_00602140 为基址的数组，以下使用数组表示，简称 global[0]。</p>
 <p>注意，这里先有 Index_DAT_00602100 + 1，所以第一个指针应该存储在 0x602140 + 8 处。之后就用 global[1] 代表指向 chunk1 的指针，global[2] 代表指向 chunk2 的指针。</p>
 <p>首先申请3个0x30字节的堆块调试一下：</p>
-<p><img src="C:\Users\WH\AppData\Roaming\Typora\typora-user-images\image-20260323213506870.png" alt="image-20260323213506870"></p>
+<p><img src="/images/26-03-20-unlink/heap.png" alt="image-20260323213506870"></p>
 <p>可以看到，在我们申请的0x30堆块之前和之后都有一个0x410的堆块，它们是什么对于这里的 unlink 攻击没有关系，这里之后再讲，重点需要知道这里用户申请的第一和第二个堆块之间有一个0x410的块间隔。</p>
 <p>有了这些信息，我们可以形成一个大致的泄露思路：</p>
 <p>申请3个堆块，chunk1、chunk2、chunk3，返回的指针分别存储在 global[1]、global[2]、global[3]；chunk2、3物理连续，我们直接在 chunk2 里伪造一个空闲块，控制 fd 和 bk，并 free chunk3，通过 unlink 修改某个 global 指针，使其等于 global 起始地址，于是可以通过 read 操作修改所有 global 指针，使其存在 puts@got 和 free@got，之后通过 read 将 got 表的 free 项改成 puts@plt，最后通过 free(puts@got) 实际执行 puts(puts@got) 泄露地址</p>
