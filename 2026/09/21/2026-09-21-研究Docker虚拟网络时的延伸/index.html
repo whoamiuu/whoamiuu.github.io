@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 8.1.1">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.css" integrity="sha256-gkQVf8UKZgQ0HyuxL/VnacadJ+D2Kox2TCEBuNQg5+w=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"whoamiuu.github.io","root":"/","images":"/images","scheme":"Muse","darkmode":true,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":null},"fold":{"enable":true,"height":300},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="研究 Docker 虚拟网络时的延伸Docker 虚拟网络现代网站通常会使用 Docker 容器运行后端服务、Web 服务器（比如 Nginx）以及数据库（比如 PostgreSQL）。 出于安全性考虑，后端容器和数据库容器通常不需要直接对公网提供服务，而是只允许具有相应网络连通性的容器访问。 Docker 可以通过创建虚拟网络，将不同容器连接起来，实现容器之间的网络通信与一定程度的网络隔离。 例">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Whoamiuu&#39;s Blogs">
+<meta property="og:url" content="http://whoamiuu.github.io/2026/09/21/2026-09-21-%E7%A0%94%E7%A9%B6Docker%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%97%B6%E7%9A%84%E5%BB%B6%E4%BC%B8/index.html">
+<meta property="og:site_name" content="Whoamiuu&#39;s Blogs">
+<meta property="og:description" content="研究 Docker 虚拟网络时的延伸Docker 虚拟网络现代网站通常会使用 Docker 容器运行后端服务、Web 服务器（比如 Nginx）以及数据库（比如 PostgreSQL）。 出于安全性考虑，后端容器和数据库容器通常不需要直接对公网提供服务，而是只允许具有相应网络连通性的容器访问。 Docker 可以通过创建虚拟网络，将不同容器连接起来，实现容器之间的网络通信与一定程度的网络隔离。 例">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-09-21T12:47:26.679Z">
+<meta property="article:modified_time" content="2026-09-21T09:43:11.030Z">
+<meta property="article:tag" content="pwn, ctf, binary, exploit, reverse">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://whoamiuu.github.io/2026/09/21/2026-09-21-%E7%A0%94%E7%A9%B6Docker%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%97%B6%E7%9A%84%E5%BB%B6%E4%BC%B8/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2026/09/21/2026-09-21-%E7%A0%94%E7%A9%B6Docker%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%97%B6%E7%9A%84%E5%BB%B6%E4%BC%B8/","path":"2026/09/21/2026-09-21-研究Docker虚拟网络时的延伸/","title":""}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title> | Whoamiuu's Blogs</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancyapps-ui/5.0.31/fancybox/fancybox.umd.js" integrity="sha256-a+H7FYzJv6oU2hfsfDGM2Ohw/cR9v+hPfxHCLdmCrE8=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+  <script src="/js/third-party/fancybox.js" defer></script>
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Whoamiuu's Blogs</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">二进制安全学习笔记</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="Searching..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%A0%94%E7%A9%B6-Docker-%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%97%B6%E7%9A%84%E5%BB%B6%E4%BC%B8"><span class="nav-number">1.</span> <span class="nav-text">研究 Docker 虚拟网络时的延伸</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Docker-%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C"><span class="nav-number">1.1.</span> <span class="nav-text">Docker 虚拟网络</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-number">1.2.</span> <span class="nav-text">虚拟网络是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%B9%E5%99%A8%E6%9C%8D%E5%8A%A1%E5%A6%82%E4%BD%95%E6%9A%B4%E9%9C%B2%E5%88%B0%E5%85%AC%E7%BD%91%EF%BC%9F"><span class="nav-number">1.3.</span> <span class="nav-text">容器服务如何暴露到公网？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B1%80%E5%9F%9F%E7%BD%91%E3%80%81%E5%85%AC%E7%BD%91%E4%B8%8E-IPv4"><span class="nav-number">1.4.</span> <span class="nav-text">局域网、公网与 IPv4</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A3%E7%90%86%E4%B8%8E-VPN-%E5%A6%82%E4%BD%95%E5%BD%B1%E5%93%8D%E6%BA%AF%E6%BA%90%EF%BC%9F"><span class="nav-number">1.5.</span> <span class="nav-text">代理与 VPN 如何影响溯源？</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt=""
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name"></p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://whoamiuu.github.io/2026/09/21/2026-09-21-%E7%A0%94%E7%A9%B6Docker%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%97%B6%E7%9A%84%E5%BB%B6%E4%BC%B8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2026-09-21 20:47:26 / Modified: 17:43:11" itemprop="dateCreated datePublished" datetime="2026-09-21T20:47:26+08:00">2026-09-21</time>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="研究-Docker-虚拟网络时的延伸"><a href="#研究-Docker-虚拟网络时的延伸" class="headerlink" title="研究 Docker 虚拟网络时的延伸"></a>研究 Docker 虚拟网络时的延伸</h1><h2 id="Docker-虚拟网络"><a href="#Docker-虚拟网络" class="headerlink" title="Docker 虚拟网络"></a>Docker 虚拟网络</h2><p>现代网站通常会使用 Docker 容器运行后端服务、Web 服务器（比如 Nginx）以及数据库（比如 PostgreSQL）。</p>
+<p>出于安全性考虑，后端容器和数据库容器通常不需要直接对公网提供服务，而是只允许具有相应网络连通性的容器访问。</p>
+<p>Docker 可以通过创建虚拟网络，将不同容器连接起来，实现容器之间的网络通信与一定程度的网络隔离。</p>
+<p>例如，可以使用 <code>expose</code> 声明后端服务的内部端口：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">backend:</span></span><br><span class="line">    <span class="attr">build:</span> <span class="string">./backend</span></span><br><span class="line">    <span class="attr">expose:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&quot;8000&quot;</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">      <span class="attr">DATABASE_URL:</span> <span class="string">postgresql://webuser:webpass@postgres:5432/webdb</span></span><br><span class="line">    <span class="attr">depends_on:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">postgres</span></span><br></pre></td></tr></table></figure>
+
+<p>需要注意，<code>expose</code> 主要用于声明容器提供的端口，并不负责实现网络隔离，也不是容器之间进行通信的必要条件。</p>
+<p>容器之间能否通信，主要取决于它们连接的 Docker 网络及相应的网络配置。</p>
+<p>此外，没有使用 <code>ports</code> 发布端口，并不意味着容器内部的服务无法被其他容器访问。</p>
+<h2 id="虚拟网络是什么？"><a href="#虚拟网络是什么？" class="headerlink" title="虚拟网络是什么？"></a>虚拟网络是什么？</h2><p>Docker 虚拟网络可以理解为由 Docker 管理的虚拟网络环境。以常见的 bridge 网络为例，Docker 可以在宿主机上创建虚拟网桥，并为连接到该网络的容器分配 IP 地址，使它们能够在网络允许的情况下相互通信。</p>
+<p>这类似于家庭局域网或公司内网。</p>
+<p>对于 IPv4，常见的私有地址范围包括：</p>
+<ul>
+<li><code>10.0.0.0/8</code></li>
+<li><code>172.16.0.0/12</code></li>
+<li><code>192.168.0.0/16</code></li>
+</ul>
+<p>其中，<code>172.16.0.0/12</code> 表示从 <code>172.16.0.0</code> 到 <code>172.31.255.255</code> 的地址范围，并不是所有 <code>172.x.x.x</code> 地址都属于私有地址。</p>
+<p>主机、容器和虚拟机都可以使用私有 IPv4 地址。Docker 可以从配置的地址池中选择网段，为容器分配地址。</p>
+<p>连接到同一个 Docker 网络的容器，通常可以通过容器 IP 地址或 Docker 提供的服务发现机制访问其他容器的服务，前提是目标服务正在监听相应端口，并且网络配置允许通信。</p>
+<p>基于上述内容，如果攻击者控制了某个容器，就可能利用该容器能够访问的网络路径，对其他容器提供的服务进行探测或攻击。</p>
+<p>但这并不意味着攻击者一定能够访问所有容器。实际可达范围取决于网络拓扑、容器连接关系、主机防火墙以及其他访问控制配置。</p>
+<h2 id="容器服务如何暴露到公网？"><a href="#容器服务如何暴露到公网？" class="headerlink" title="容器服务如何暴露到公网？"></a>容器服务如何暴露到公网？</h2><p>大多数网站需要向用户提供访问入口，通常会让 Nginx、Apache 等 Web 服务器对外提供服务。</p>
+<p>在常见的 Docker 部署场景中，可以通过 <code>ports</code> 将容器端口发布到宿主机端口。</p>
+<p>例如：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">nginx:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">nginx:1.29</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&quot;8080:80&quot;</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">./nginx/nginx.conf:/etc/nginx/nginx.conf:ro</span></span><br><span class="line">    <span class="attr">depends_on:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">backend</span></span><br></pre></td></tr></table></figure>
+
+<p>这里的：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">ports:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">&quot;8080:80&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>表示将宿主机的 8080 端口映射到容器的 80 端口。</p>
+<p>当客户端访问宿主机相应的 8080 端口时，Docker 会根据端口发布配置，将流量转发到容器的 80 端口。</p>
+<p>不过，端口映射并不意味着公网一定可以访问该服务。</p>
+<p>公网用户能否访问，还取决于宿主机是否具有公网入口、云服务器安全组和防火墙规则、路由器端口转发以及其他网络配置。</p>
+<p>因此，<code>ports</code> 的作用是配置端口发布，而不是单独保证服务能够从公网访问。</p>
+<h2 id="局域网、公网与-IPv4"><a href="#局域网、公网与-IPv4" class="headerlink" title="局域网、公网与 IPv4"></a>局域网、公网与 IPv4</h2><p>之前讲到，Docker 虚拟网络在一定程度上类似于家庭局域网。</p>
+<p>在常见的家庭网络中，路由器连接家庭局域网和运营商网络。家庭设备通常使用私有 IPv4 地址，而路由器可能通过 NAT，让多个内网设备共享一个公网 IPv4 地址访问互联网。</p>
+<p>需要注意，路由器不一定直接拥有公网 IPv4 地址。在某些网络环境中，路由器可能位于运营商级 NAT（CGNAT）之后。</p>
+<p>IPv4 地址也不只是私有地址和公网地址两种。除了私有地址之外，还存在环回地址、链路本地地址、组播地址及其他特殊用途地址。因此，不能简单地认为所有非私有 IPv4 地址都可以直接在公网使用。</p>
+<p>在普通 NAT 场景中，同一个局域网下的多台设备可以使用相同的私有地址，而不同局域网之间也可以重复使用相同的私有地址。</p>
+<p>例如，两个家庭网络中的设备都可能使用 <code>192.168.1.100</code>。由于它们处于不同的网络环境中，因此地址重复本身并不一定造成冲突。</p>
+<p>当这些设备通过 NAT 访问外部服务器时，目标服务器通常看到的是 NAT 转换后的源 IP 地址，而不是设备原本使用的私有 IP 地址。</p>
+<p>因此，目标服务器通常无法仅凭连接的源 IP 地址，直接确定发起请求的是局域网中的哪一台设备。</p>
+<p>不过，应用层信息、代理转发信息以及其他日志数据可能提供额外线索，所以不能认为目标服务器绝对无法获得其他客户端信息。</p>
+<p>随着互联网的发展，可供分配的公网 IPv4 地址逐渐耗尽。NAT 通过让多个设备共享公网 IPv4 地址，缓解了公网地址需求；IPv6 则提供了更大的地址空间。</p>
+<h2 id="代理与-VPN-如何影响溯源？"><a href="#代理与-VPN-如何影响溯源？" class="headerlink" title="代理与 VPN 如何影响溯源？"></a>代理与 VPN 如何影响溯源？</h2><p>通过前面介绍的局域网和 NAT 访问逻辑，可以进一步理解代理和 VPN 对目标服务器所观察到的源 IP 地址的影响。</p>
+<p>在普通的代理转发场景中，攻击者的请求会先经过代理服务器，再由代理服务器向目标服务器发起请求：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">攻击者设备</span><br><span class="line">    |</span><br><span class="line">    | 发出请求</span><br><span class="line">    v</span><br><span class="line">代理服务器</span><br><span class="line">    |</span><br><span class="line">    | 转发请求</span><br><span class="line">    v</span><br><span class="line">目标服务器</span><br></pre></td></tr></table></figure>
+
+<p>在这种情况下，目标服务器通常看到的是代理服务器的出口 IP 地址，而不是攻击者设备原本使用的公网 IP 地址。</p>
+<p>VPN 则通常通过建立网络隧道，将符合路由配置的流量转发到 VPN 服务器，再由 VPN 服务器访问目标网络。</p>
+<p>如果目标流量确实经过 VPN 出口，那么目标服务器通常看到的是 VPN 出口的 IP 地址。</p>
+<p>但这些情况都取决于具体的代理方式、VPN 路由配置以及应用层行为。例如，某些代理可能会在请求头中传递客户端 IP 信息；如果流量没有完全经过 VPN，也可能出现不同的源 IP 地址。</p>
+<p>因此，不能简单地认为使用代理或 VPN 后，目标服务器一定只能看到代理或 VPN 的 IP 地址。</p>
+<p>当服务器遭到攻击时，服务器日志中记录的源 IP 地址可以作为调查线索，但<strong>仅凭一个 IP 地址，通常不能直接确认攻击者的真实身份</strong>。</p>
+<p>进一步调查可能需要结合准确的时间信息、运营商记录、服务商日志、主机日志以及其他相关证据。</p>
+<p>如果攻击流量经过多个代理节点，调查人员还可能需要分析多个网络节点及其相关记录，这会增加调查的复杂程度。</p>
+<p>总的来说，代理和 VPN 会改变目标服务器直接观察到的网络来源，但并不意味着攻击者一定无法被追踪。实际调查结果取决于可获得的证据、服务商记录以及具体的网络和应用配置。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2026/08/19/hello-world/" rel="prev" title="Hello World">
+                  <i class="fa fa-angle-left"></i> Hello World
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/09/29/2026-09-20-LLM-Agent%20%E5%AE%9E%E7%8E%B0%E7%A0%94%E7%A9%B6/" rel="next" title="">
+                   <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2026</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder"></span>
+  </div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/muse/" rel="noopener" target="_blank">NexT.Muse</a>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
