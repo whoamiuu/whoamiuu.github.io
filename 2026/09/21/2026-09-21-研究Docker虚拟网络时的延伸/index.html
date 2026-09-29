@@ -23,24 +23,25 @@
 
     <meta name="description" content="研究 Docker 虚拟网络时的延伸Docker 虚拟网络现代网站通常会使用 Docker 容器运行后端服务、Web 服务器（比如 Nginx）以及数据库（比如 PostgreSQL）。 出于安全性考虑，后端容器和数据库容器通常不需要直接对公网提供服务，而是只允许具有相应网络连通性的容器访问。 Docker 可以通过创建虚拟网络，将不同容器连接起来，实现容器之间的网络通信与一定程度的网络隔离。 例">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Whoamiuu&#39;s Blogs">
+<meta property="og:title" content="Docker虚拟网络延伸">
 <meta property="og:url" content="http://whoamiuu.github.io/2026/09/21/2026-09-21-%E7%A0%94%E7%A9%B6Docker%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%97%B6%E7%9A%84%E5%BB%B6%E4%BC%B8/index.html">
 <meta property="og:site_name" content="Whoamiuu&#39;s Blogs">
 <meta property="og:description" content="研究 Docker 虚拟网络时的延伸Docker 虚拟网络现代网站通常会使用 Docker 容器运行后端服务、Web 服务器（比如 Nginx）以及数据库（比如 PostgreSQL）。 出于安全性考虑，后端容器和数据库容器通常不需要直接对公网提供服务，而是只允许具有相应网络连通性的容器访问。 Docker 可以通过创建虚拟网络，将不同容器连接起来，实现容器之间的网络通信与一定程度的网络隔离。 例">
 <meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2026-09-21T12:47:26.679Z">
-<meta property="article:modified_time" content="2026-09-21T09:43:11.030Z">
-<meta property="article:tag" content="pwn, ctf, binary, exploit, reverse">
+<meta property="article:published_time" content="2026-09-21T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-29T13:35:43.545Z">
+<meta property="article:tag" content="docker">
+<meta property="article:tag" content="web">
 <meta name="twitter:card" content="summary">
 
 
 <link rel="canonical" href="http://whoamiuu.github.io/2026/09/21/2026-09-21-%E7%A0%94%E7%A9%B6Docker%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%97%B6%E7%9A%84%E5%BB%B6%E4%BC%B8/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2026/09/21/2026-09-21-%E7%A0%94%E7%A9%B6Docker%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%97%B6%E7%9A%84%E5%BB%B6%E4%BC%B8/","path":"2026/09/21/2026-09-21-研究Docker虚拟网络时的延伸/","title":""}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://whoamiuu.github.io/2026/09/21/2026-09-21-%E7%A0%94%E7%A9%B6Docker%E8%99%9A%E6%8B%9F%E7%BD%91%E7%BB%9C%E6%97%B6%E7%9A%84%E5%BB%B6%E4%BC%B8/","path":"2026/09/21/2026-09-21-研究Docker虚拟网络时的延伸/","title":"Docker虚拟网络延伸"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title> | Whoamiuu's Blogs</title>
+<title>Docker虚拟网络延伸 | Whoamiuu's Blogs</title>
   
 
 
@@ -177,7 +178,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -188,7 +189,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">13</span>
+        <span class="site-state-item-count">15</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -228,12 +229,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Whoamiuu's Blogs">
+      <meta itemprop="name" content="Docker虚拟网络延伸 | Whoamiuu's Blogs">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          
+          Docker虚拟网络延伸
         </h1>
 
         <div class="post-meta-container">
@@ -243,9 +244,24 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2026-09-21 20:47:26 / Modified: 17:43:11" itemprop="dateCreated datePublished" datetime="2026-09-21T20:47:26+08:00">2026-09-21</time>
+      <time title="Created: 2026-09-21 10:00:00" itemprop="dateCreated datePublished" datetime="2026-09-21T10:00:00+08:00">2026-09-21</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-09-29 21:35:43" itemprop="dateModified" datetime="2026-09-29T21:35:43+08:00">2026-09-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Notes/" itemprop="url" rel="index"><span itemprop="name">Notes</span></a>
+        </span>
     </span>
 
   
@@ -330,18 +346,22 @@
     
 
     <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/web/" rel="tag"># web</a>
+              <a href="/tags/docker/" rel="tag"># docker</a>
+          </div>
 
         
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2026/08/19/hello-world/" rel="prev" title="Hello World">
-                  <i class="fa fa-angle-left"></i> Hello World
+                <a href="/2026/09/10/2026-09-10-TLS(SSL)%E5%8A%A0%E5%AF%86/" rel="prev" title="TLS&#x2F;SSL 加密">
+                  <i class="fa fa-angle-left"></i> TLS/SSL 加密
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2026/09/29/2026-09-20-LLM-Agent%20%E5%AE%9E%E7%8E%B0%E7%A0%94%E7%A9%B6/" rel="next" title="">
-                   <i class="fa fa-angle-right"></i>
+                <a href="/2026/09/28/2026-09-28-LLM-Agent%20%E5%AE%9E%E7%8E%B0%E7%A0%94%E7%A9%B6/" rel="next" title="LLM Agent 实现研究">
+                  LLM Agent 实现研究 <i class="fa fa-angle-right"></i>
                 </a>
             </div>
           </div>
